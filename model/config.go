@@ -17,11 +17,12 @@ type Domain struct {
 	Authoritative bool   `json:"authoritative,default=true"`
 	Recursion     bool   `json:"recursion,default=false"`
 	Upstream      string `json:"upstream,default=127.0.0.1:53"`
+	MySQL         string `json:"mysql"`
 	TTL           uint32 `json:"ttl,default=60"`
 }
 
 type Rule struct {
 	CIDR    string   `json:"cidr"`
-	MySQL   string   `json:"mysql"`
+	Name    string   `json:"name"`
 	Records []Record `json:"records"`
 }

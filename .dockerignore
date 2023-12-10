@@ -1,0 +1,8 @@
+.idea/
+.git/
+.golangci.yaml
+.releaserc.json
+.github/
+LICENSE
+README.md
+ninedns.json

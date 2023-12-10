@@ -20,6 +20,7 @@ type Server struct {
 	l           *zap.SugaredLogger
 	dnsClient   *dns.Client
 	cacheClient cache.API
+	dbClient    *gorm.DB
 	rules       map[string]*RuleSet
 }
 
@@ -27,7 +28,6 @@ type RuleSet struct {
 	model.Rule
 	*Server
 	cidr *net.IPNet
-	db   *gorm.DB
 }
 
 func NewServer(config *model.Domain) (*Server, error) {
@@ -63,17 +63,18 @@ func NewServer(config *model.Domain) (*Server, error) {
 		server.l.Warn("Server rules is empty, please ensure it's correct.")
 	}
 
+	if server.MySQL != "" {
+		db, err := gorm.Open(mysql.Open(server.MySQL), &gorm.Config{})
+		if err != nil {
+			server.l.Errorf("Failed to open MySQL %s: %s", server.MySQL, err)
+			return nil, err
+		}
+
+		server.dbClient = db
+	}
+
 	for _, rule := range server.Domain.Rules {
 		var set RuleSet
-		if set.MySQL != "" {
-			db, err := gorm.Open(mysql.Open(set.MySQL), &gorm.Config{})
-			if err != nil {
-				server.l.Errorf("Failed to open MySQL %s: %s", rule.MySQL, err)
-				return nil, err
-			}
-
-			set.db = db
-		}
 
 		if set.CIDR == "" {
 			set.CIDR = "0.0.0.0/0"
@@ -83,6 +84,11 @@ func NewServer(config *model.Domain) (*Server, error) {
 		_, cidr, err := net.ParseCIDR(rule.CIDR)
 		if err != nil {
 			server.l.Errorf("Failed to parse CIDR %s: %s", rule.CIDR, err)
+			return nil, err
+		}
+
+		if err := server.dbClient.Table(rule.Name).AutoMigrate(&model.Record{}); err != nil {
+			server.l.Errorf("Failed to auto migrate record: %s", err)
 			return nil, err
 		}
 
@@ -226,14 +232,14 @@ func (s *RuleSet) RefreshRecords() {
 		s.l.Infof("Refreshed %d records", len(records))
 	}()
 
-	if s.db == nil {
+	if s.dbClient == nil {
 		return
 	}
 
-	tx := s.db.Begin()
+	tx := s.dbClient.Begin()
 	defer tx.Rollback()
 
-	if err := tx.Where("*").Find(&records).Error; err != nil {
+	if err := tx.Table(s.Name).Where("*").Find(&records).Error; err != nil {
 		s.l.Errorf("Failed to query records: %s", err)
 		return
 	}
