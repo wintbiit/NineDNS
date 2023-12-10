@@ -2,8 +2,9 @@ package cache
 
 import (
 	"context"
-	"github.com/wintbiit/ninedns/model"
 	"time"
+
+	"github.com/wintbiit/ninedns/model"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/wintbiit/ninedns/utils"

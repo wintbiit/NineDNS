@@ -1,12 +1,13 @@
 package server
 
 import (
-	"github.com/redis/go-redis/v9"
 	"math/rand"
 	"net"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"github.com/miekg/dns"
 	"github.com/wintbiit/ninedns/cache"
