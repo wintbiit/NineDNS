@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"flag"
 	"os"
 
 	"github.com/wintbiit/ninedns/model"
@@ -10,7 +11,10 @@ import (
 var C *model.Config
 
 func init() {
-	f, err := os.Open("./ninedns.json")
+	config := flag.String("config", "./ninedns.json", "config file path")
+	flag.Parse()
+
+	f, err := os.Open(*config)
 	if err != nil {
 		zap.S().Fatalf("Failed to open config file: %s", err)
 	}
