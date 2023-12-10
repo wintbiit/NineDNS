@@ -27,6 +27,7 @@ Define a config:
       "upstream": "223.5.5.5:53",  // upstream dns server, only works in recursion mode
       "ttl": 600,                  // default ttl, attention: ttl is server level, not record level. server re-fetch record source ttl
       "mysql": "root:123456@tcp(localhost:3306)/dns", // mysql dns record source
+      "sqlite": "dns.db",          // sqlite dns record source
       "rules": {                   // dns resolve match rules. name <===> rule. Name is also used as table name in mysql record source
         "all": {
           "cidrs": [               // cidr match

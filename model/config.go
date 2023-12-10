@@ -17,6 +17,7 @@ type Domain struct {
 	Recursion     bool            `json:"recursion,default=false"`
 	Upstream      string          `json:"upstream,default=127.0.0.1:53"`
 	MySQL         string          `json:"mysql"`
+	SQLite        string          `json:"sqlite"`
 	TTL           uint32          `json:"ttl,default=60"`
 }
 

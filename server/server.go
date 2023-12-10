@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/driver/sqlite"
+
 	"github.com/redis/go-redis/v9"
 
 	"github.com/miekg/dns"
@@ -75,6 +77,16 @@ func NewServer(config *model.Domain, domain string) (*Server, error) {
 		db, err := gorm.Open(mysql.Open(server.MySQL), &gorm.Config{})
 		if err != nil {
 			server.l.Errorf("Failed to open MySQL %s: %s", server.MySQL, err)
+			return nil, err
+		}
+
+		server.dbClient = db
+	}
+
+	if server.SQLite != "" {
+		db, err := gorm.Open(sqlite.Open(server.SQLite), &gorm.Config{})
+		if err != nil {
+			server.l.Errorf("Failed to open SQLite %s: %s", server.SQLite, err)
 			return nil, err
 		}
 
