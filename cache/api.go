@@ -39,5 +39,6 @@ func (c *RedisClient) AddRecord(identify string, record *model.Record) error {
 	if err != nil {
 		return err
 	}
+
 	return c.SAdd(context.Background(), key, value).Err()
 }

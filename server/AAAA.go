@@ -16,7 +16,7 @@ func (s *RuleSet) handleAAAA(r *dns.Msg, q *dns.Question, m *dns.Msg) {
 
 		if record == nil {
 			// Record not found
-			s.l.Debugf("No record found for question: %+v", q)
+			s.l.Infof("No record found for question: %+v", q)
 			m.SetRcode(r, dns.RcodeNameError)
 			return
 		}

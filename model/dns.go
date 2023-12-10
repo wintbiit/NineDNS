@@ -26,12 +26,12 @@ const (
 )
 
 type Record struct {
-	Host    string      `json:"host"`
-	Type    RecordType  `json:"type"`
-	Value   RecordValue `json:"value"`
-	Weight  uint16      `json:"weight"`
-	Enabled bool        `json:"enabled"`
-	Note    string      `json:"-"`
+	Host     string      `json:"host"`
+	Type     RecordType  `json:"type"`
+	Value    RecordValue `json:"value"`
+	Weight   uint16      `json:"weight,default=1"`
+	Disabled bool        `json:"disabled,default=false"`
+	Note     string      `json:"-"`
 }
 
 type SOARecord struct {

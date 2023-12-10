@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/wintbiit/ninedns/utils"
@@ -14,10 +15,10 @@ type RedisClient struct {
 	API
 
 	Domain string
-	TTL    uint16
+	TTL    uint32
 }
 
-func NewClient(domain string) (*RedisClient, error) {
+func NewClient(domain string, ttl uint32) (*RedisClient, error) {
 	client := &RedisClient{
 		Client: redis.NewClient(&redis.Options{
 			Addr:     utils.C.Redis.Addr,
@@ -25,12 +26,16 @@ func NewClient(domain string) (*RedisClient, error) {
 			DB:       utils.C.Redis.DB,
 		}),
 		Domain: domain,
+		TTL:    ttl,
 	}
 
 	_, err := client.Ping(context.Background()).Result()
 	if err != nil {
 		return nil, err
 	}
+
+	client.Set(context.Background(), redisKeyPrefix+":lastrun", time.Now().String(), 0)
+	client.SAdd(context.Background(), redisKeyPrefix+":domains", domain)
 
 	return client, nil
 }

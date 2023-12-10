@@ -1,5 +1,5 @@
 {
-  "addr": ":8080",
+  "addr": ":53",
   "debug": true,
   "domains": [
     {
@@ -8,16 +8,17 @@
       "recursion": false,
       "upstream": "223.5.5.5:53",
       "ttl": 600,
-      "mysql": "root:123456@tcp(localhost:3306)/dns?charset=utf8&parseTime=True&loc=Local",
+      "mysql": "root:luoqiwen20040602@tcp(localhost:3306)/dns",
       "rules": [
         {
-          "cidr": "0.0.0.0/0",
-          "name": "example.com"
+          "cidr": "127.0.0.1/24",
+          "name": "example_com"
         }
       ]
     }
   ],
   "redis": {
-    "addr": "localhost:6379"
+    "addr": "localhost:6379",
+    "db": 8
   }
 }

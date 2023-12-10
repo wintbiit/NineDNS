@@ -5,6 +5,7 @@ import (
 	"net"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 	"github.com/wintbiit/ninedns/cache"
@@ -27,6 +28,7 @@ type Server struct {
 type RuleSet struct {
 	model.Rule
 	*Server
+	l    *zap.SugaredLogger
 	cidr *net.IPNet
 }
 
@@ -34,6 +36,7 @@ func NewServer(config *model.Domain) (*Server, error) {
 	server := &Server{
 		Domain:    *config,
 		l:         log.NewLogger(config.Domain).Sugar(),
+		rules:     make(map[string]*RuleSet),
 		dnsClient: new(dns.Client),
 	}
 	if !strings.HasSuffix(server.Domain.Domain, ".") {
@@ -73,12 +76,20 @@ func NewServer(config *model.Domain) (*Server, error) {
 		server.dbClient = db
 	}
 
+	cacheClient, err := cache.NewClient(server.Domain.Domain, server.TTL)
+	if err != nil {
+		server.l.Errorf("Failed to create cache client: %s", err)
+		return nil, err
+	}
+
+	server.cacheClient = cacheClient
+
 	for _, rule := range server.Domain.Rules {
 		var set RuleSet
 
 		if set.CIDR == "" {
 			set.CIDR = "0.0.0.0/0"
-			server.l.Warn("Rule CIDR is empty, automatically set it to %s.", set.CIDR)
+			server.l.Warnf("Rule CIDR is empty, automatically set it to %s.", set.CIDR)
 		}
 
 		_, cidr, err := net.ParseCIDR(rule.CIDR)
@@ -93,21 +104,18 @@ func NewServer(config *model.Domain) (*Server, error) {
 		}
 
 		set.cidr = cidr
-
 		set.Rule = rule
 		set.Server = server
-		go set.RefreshRecords()
+		set.l = server.l.Named(rule.Name)
+		go func() {
+			set.RefreshRecords()
+			for range time.Tick(time.Duration(server.TTL) * time.Second) {
+				set.RefreshRecords()
+			}
+		}()
 
 		server.rules[rule.CIDR] = &set
 	}
-
-	cacheClient, err := cache.NewClient(server.Domain.Domain)
-	if err != nil {
-		server.l.Errorf("Failed to create cache client: %s", err)
-		return nil, err
-	}
-
-	server.cacheClient = cacheClient
 
 	dns.HandleFunc(server.Domain.Domain, server.handle)
 
@@ -116,8 +124,16 @@ func NewServer(config *model.Domain) (*Server, error) {
 
 func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 	remoteAddr := w.RemoteAddr()
-	s.l.Debugf("Receive DNS request: %+v", r)
-	s.l.Debugf("Receive DNS request from %s", remoteAddr)
+	s.l.Debugf("Receive DNS request {%+v} from %s: %s", r, remoteAddr.Network(), remoteAddr.String())
+	var remoteIp net.IP
+	if remoteAddr.Network() == "udp" {
+		remoteIp = remoteAddr.(*net.UDPAddr).IP
+	} else if remoteAddr.Network() == "tcp" {
+		remoteIp = remoteAddr.(*net.TCPAddr).IP
+	} else {
+		s.l.Warnf("Unsupported network %s", remoteAddr.Network())
+		return
+	}
 
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -126,7 +142,7 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 
 	var handler *RuleSet
 	for _, rule := range s.rules {
-		if rule.cidr.Contains(net.ParseIP(remoteAddr.String())) {
+		if rule.cidr.Contains(remoteIp) {
 			handler = rule
 			break
 		}
@@ -177,7 +193,9 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *RuleSet) findRecords(name string, quesType uint16) []model.Record {
-	records, err := s.cacheClient.FindRecords(name, model.ReadRecordType(quesType).String(), s.CIDR)
+	name = strings.TrimSuffix(name, s.Domain.Domain)
+	name = strings.TrimSuffix(name, ".")
+	records, err := s.cacheClient.FindRecords(name, model.ReadRecordType(quesType).String(), s.Name)
 	if err != nil {
 		s.l.Errorf("Failed to query records: %s", err)
 		return nil
@@ -220,11 +238,20 @@ func (s *RuleSet) RefreshRecords() {
 		records = append(records, s.Records...)
 
 		for _, record := range records {
-			if !record.Enabled {
+			if record.Disabled {
 				continue
 			}
-			record := record
-			if err := s.cacheClient.AddRecord(s.CIDR, &record); err != nil {
+			if strings.HasSuffix(record.Host, s.Domain.Domain) {
+				record.Host = strings.TrimSuffix(record.Host, s.Domain.Domain)
+				s.l.Warnf("DNS record %s does not need domain suffix, automatically remove it.", record.Host)
+			}
+
+			if strings.HasSuffix(record.Host, ".") {
+				record.Host = strings.TrimSuffix(record.Host, ".")
+				s.l.Warnf("DNS record %s does not need `.` suffix, automatically remove it.", record.Host)
+			}
+
+			if err := s.cacheClient.AddRecord(s.Name, &record); err != nil {
 				s.l.Errorf("Failed to add record %s: %s", record.Host, err)
 			}
 		}
@@ -239,7 +266,7 @@ func (s *RuleSet) RefreshRecords() {
 	tx := s.dbClient.Begin()
 	defer tx.Rollback()
 
-	if err := tx.Table(s.Name).Where("*").Find(&records).Error; err != nil {
+	if err := tx.Table(s.Name).Find(&records).Error; err != nil {
 		s.l.Errorf("Failed to query records: %s", err)
 		return
 	}
@@ -247,7 +274,7 @@ func (s *RuleSet) RefreshRecords() {
 
 func (s *Server) Header(r *model.Record) dns.RR_Header {
 	return dns.RR_Header{
-		Name:   r.Host,
+		Name:   r.Host + s.Domain.Domain,
 		Rrtype: r.Type.DnsType(),
 		Class:  dns.ClassINET,
 		Ttl:    s.TTL,
