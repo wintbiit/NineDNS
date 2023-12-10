@@ -48,7 +48,7 @@ jobs:
       - run: go version
       - name: Build
         run: |
-          go build -race -trimpath -ldflags "-s -w" -o ./bin/ninedns .
+          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns .
         working-directory: ./
 
   linter:

@@ -1,7 +1,7 @@
 FROM golang:1.20-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN go build -race -trimpath -ldflags="-s -w" -o ./bin/ninedns .
+RUN go build -trimpath -ldflags="-s -w" -o ./bin/ninedns .
 
 FROM alpine:3.14
 WORKDIR /app
