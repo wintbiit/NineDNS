@@ -5,6 +5,9 @@ on: [push, pull_request]
 permissions:
   contents: write
 
+env:
+  GO_VERSION: 1.20.1
+
 jobs:
 
   go-tests:
@@ -28,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: '^1.20.1'
+          go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ./go.mod
       - name: Tests
         run: |
@@ -43,7 +46,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: '^1.20.1'
+          go-version: ${{ env.GO_VERSION }}
           cache: false
 
       # gen a dummy config file
@@ -63,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: '^1.20.1'
+          go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ./go.mod
       - run: go version
       - name: Build
@@ -84,7 +87,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: '^1.20.1'
+          go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ./go.mod
       - run: go version
       - name: Build
@@ -120,6 +123,9 @@ jobs:
         with:
           name: ninedns-windows
           path: ./dist
+      - name: ls
+        run: |
+          ls -l ./dist
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
