@@ -21,6 +21,12 @@ func main() {
 		servers[domain.Domain] = serv
 	}
 
+	defer func() {
+		for _, serv := range servers {
+			serv.Close()
+		}
+	}()
+
 	serv := &dns.Server{Addr: utils.C.Addr, Net: "udp"}
 	if err := serv.ListenAndServe(); err != nil {
 		zap.S().Fatal(err)

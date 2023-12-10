@@ -9,11 +9,6 @@ import (
 	"github.com/wintbiit/ninedns/utils"
 )
 
-type API interface {
-	FindRecords(name, qType, identify string) ([]model.Record, error)
-	AddRecord(identify string, record *model.Record) error
-}
-
 func (c *RedisClient) FindRecords(name, qType, identify string) ([]model.Record, error) {
 	key := fmt.Sprintf("%s:%s:%s:%s:%s", redisKeyPrefix, c.Domain, name, qType, identify)
 	values, err := c.SMembers(context.Background(), key).Result()

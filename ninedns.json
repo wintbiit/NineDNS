@@ -11,7 +11,7 @@
       "mysql": "root:luoqiwen20040602@tcp(localhost:3306)/dns",
       "rules": [
         {
-          "cidr": "127.0.0.1/24",
+          "cidr": "0.0.0.0/0",
           "name": "example_com"
         }
       ]

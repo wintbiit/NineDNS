@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"github.com/wintbiit/ninedns/model"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -16,6 +17,14 @@ type RedisClient struct {
 
 	Domain string
 	TTL    uint32
+}
+
+type API interface {
+	FindRecords(name, qType, identify string) ([]model.Record, error)
+	AddRecord(identify string, record *model.Record) error
+	AddRuntimeCache(key string, value string, expire time.Duration) error
+	GetRuntimeCache(key string) (string, error)
+	Close() error
 }
 
 func NewClient(domain string, ttl uint32) (*RedisClient, error) {
@@ -38,4 +47,8 @@ func NewClient(domain string, ttl uint32) (*RedisClient, error) {
 	client.SAdd(context.Background(), redisKeyPrefix+":domains", domain)
 
 	return client, nil
+}
+
+func (c *RedisClient) Close() error {
+	return c.Client.Close()
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/redis/go-redis/v9"
 	"math/rand"
 	"net"
 	"sort"
@@ -28,8 +29,8 @@ type Server struct {
 type RuleSet struct {
 	model.Rule
 	*Server
-	l    *zap.SugaredLogger
-	cidr *net.IPNet
+	l     *zap.SugaredLogger
+	cidrs []*net.IPNet
 }
 
 func NewServer(config *model.Domain) (*Server, error) {
@@ -87,23 +88,28 @@ func NewServer(config *model.Domain) (*Server, error) {
 	for _, rule := range server.Domain.Rules {
 		var set RuleSet
 
-		if set.CIDR == "" {
-			set.CIDR = "0.0.0.0/0"
-			server.l.Warnf("Rule CIDR is empty, automatically set it to %s.", set.CIDR)
+		set.cidrs = make([]*net.IPNet, len(rule.CIDRs))
+		for i, cid := range rule.CIDRs {
+			if cid == "" {
+				cid = "0.0.0.0/0"
+				server.l.Warnf("Rule CIDR is empty, automatically set it to %s.", cid)
+			}
+
+			_, cidr, err := net.ParseCIDR(cid)
+			if err != nil {
+				server.l.Errorf("Failed to parse CIDR %s: %s", cidr, err)
+				return nil, err
+			}
+
+			if err := server.dbClient.Table(rule.Name).AutoMigrate(&model.Record{}); err != nil {
+				server.l.Errorf("Failed to auto migrate record: %s", err)
+				return nil, err
+			}
+
+			set.cidrs[i] = cidr
+			server.rules[cid] = &set
 		}
 
-		_, cidr, err := net.ParseCIDR(rule.CIDR)
-		if err != nil {
-			server.l.Errorf("Failed to parse CIDR %s: %s", rule.CIDR, err)
-			return nil, err
-		}
-
-		if err := server.dbClient.Table(rule.Name).AutoMigrate(&model.Record{}); err != nil {
-			server.l.Errorf("Failed to auto migrate record: %s", err)
-			return nil, err
-		}
-
-		set.cidr = cidr
 		set.Rule = rule
 		set.Server = server
 		set.l = server.l.Named(rule.Name)
@@ -113,8 +119,6 @@ func NewServer(config *model.Domain) (*Server, error) {
 				set.RefreshRecords()
 			}
 		}()
-
-		server.rules[rule.CIDR] = &set
 	}
 
 	dns.HandleFunc(server.Domain.Domain, server.handle)
@@ -140,13 +144,7 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 	m.Authoritative = s.Authoritative
 	m.RecursionAvailable = s.Recursion
 
-	var handler *RuleSet
-	for _, rule := range s.rules {
-		if rule.cidr.Contains(remoteIp) {
-			handler = rule
-			break
-		}
-	}
+	handler := s.MatchHandler(remoteIp)
 
 	if handler == nil {
 		s.l.Warnf("No rule found for %s", remoteAddr)
@@ -232,7 +230,7 @@ func (s *RuleSet) findRecord(name string, quesType uint16) *model.Record {
 }
 
 func (s *RuleSet) RefreshRecords() {
-	s.l.Info("Starting refresh records for rule set %s", s.CIDR)
+	s.l.Info("Starting refresh records for rule set %s", s.Name)
 	var records []model.Record
 	defer func() {
 		records = append(records, s.Records...)
@@ -279,4 +277,48 @@ func (s *Server) Header(r *model.Record) dns.RR_Header {
 		Class:  dns.ClassINET,
 		Ttl:    s.TTL,
 	}
+}
+
+func (s *Server) MatchHandler(ip net.IP) *RuleSet {
+	finder := func(ip net.IP) string {
+		for _, rule := range s.rules {
+			for _, cidr := range rule.cidrs {
+				if cidr.Contains(ip) {
+					return rule.Name
+				}
+			}
+		}
+
+		return ""
+	}
+
+	var handlerName string
+	var err error
+
+	handlerName, err = s.cacheClient.GetRuntimeCache("handler:" + ip.String())
+	if err != nil {
+		if err == redis.Nil {
+			handlerName = finder(ip)
+			if err := s.cacheClient.AddRuntimeCache("handler:"+ip.String(), handlerName, time.Duration(s.TTL)*time.Second); err != nil {
+				s.l.Errorf("Failed to add runtime cache: %s", err)
+			}
+		} else {
+			s.l.Errorf("Failed to get runtime cache: %s", err)
+		}
+	}
+
+	if handlerName == "" {
+		return nil
+	}
+
+	handler, ok := s.rules[handlerName]
+	if !ok {
+		return nil
+	}
+
+	return handler
+}
+
+func (s *Server) Close() error {
+	return s.cacheClient.Close()
 }
