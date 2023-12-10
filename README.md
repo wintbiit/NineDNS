@@ -18,25 +18,32 @@ Meanwhile `NineDNS` supports providing dns records from remote databases such as
 Define a config:
 ```json
 {
-  "addr": ":53",                            // listen address
-  "debug": true,                            // debug mode
-  "domains": [                              // dns server domains to resolve
-    {
-      "domain": "example.com",              // domain name
-      "authoritative": true,                // authoritative mode
-      "recursion": false,                   // recursion mode
-      "upstream": "223.5.5.5:53",           // upstream dns server, available when recursion is true
-      "ttl": 600,                           // default ttl
-      "mysql": "root:luoqiwen20040602@tcp(localhost:3306)/dns", // dns record provider mysql dsn
-      "rules": [                            // dns resolve rule set
+  "addr": ":53",                   // listen address
+  "debug": true,                   // debug mode
+  "domains": {                     // dns resolve domain key-value pairs. domain <===> resolve config
+    "example.com": {
+      "authoritative": true,       // authoritative mode
+      "recursion": false,          // recursion mode
+      "upstream": "223.5.5.5:53",  // upstream dns server, only works in recursion mode
+      "ttl": 600,                  // default ttl, attention: ttl is server level, not record level. server re-fetch record source ttl
+      "mysql": "root:123456@tcp(localhost:3306)/dns", // mysql dns record source
+      "rules": {                   // dns resolve match rules. name <===> rule. Name is also used as table name in mysql record source
+        "all": {
+          "cidrs": [               // cidr match
+            "0.0.0.0/0"
+          ]
+        }
+      },
+      "records": [                 // manually defined records. These records would overrider others
         {
-          "cidr": "127.0.0.1/24",           // remote addr cidr rule. Hits when remote addr matches
-          "name": "example_com"             // rule set name, also table name in mysql
+          "host": "git",        
+          "type": "CNAME",
+          "value": "qcloud.example.com"
         }
       ]
     }
-  ],
-  "redis": {                                // redis config
+  },
+  "redis": {                      // redis config
     "addr": "localhost:6379",
     "db": 8
   }

@@ -18,11 +18,9 @@ type Domain struct {
 	Upstream      string          `json:"upstream,default=127.0.0.1:53"`
 	MySQL         string          `json:"mysql"`
 	TTL           uint32          `json:"ttl,default=60"`
-	Domain        string          `json:"-"`
 }
 
 type Rule struct {
 	CIDRs   []string `json:"cidrs"`
-	Name    string   `json:"-"`
 	Records []Record `json:"records"`
 }

@@ -1,22 +1,29 @@
 {
   "addr": ":53",
   "debug": true,
-  "domains": [
-    {
-      "domain": "example.com",
+  "domains": {
+    "example.com": {
       "authoritative": true,
       "recursion": false,
       "upstream": "223.5.5.5:53",
       "ttl": 600,
-      "mysql": "root:luoqiwen20040602@tcp(localhost:3306)/dns",
-      "rules": [
+      "mysql": "root:123456@tcp(localhost:3306)/dns",
+      "rules": {
+        "all": {
+          "cidrs": [
+            "0.0.0.0/0"
+          ]
+        }
+      },
+      "records": [
         {
-          "cidr": "0.0.0.0/0",
-          "name": "example_com"
+          "host": "git",
+          "type": "CNAME",
+          "value": "qcloud.example.com"
         }
       ]
     }
-  ],
+  },
   "redis": {
     "addr": "localhost:6379",
     "db": 8

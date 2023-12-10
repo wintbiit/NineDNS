@@ -19,6 +19,7 @@ import (
 
 type Server struct {
 	model.Domain
+	DomainName  string
 	l           *zap.SugaredLogger
 	dnsClient   *dns.Client
 	cacheClient cache.API
@@ -29,20 +30,22 @@ type Server struct {
 type RuleSet struct {
 	model.Rule
 	*Server
+	Name  string
 	l     *zap.SugaredLogger
 	cidrs []*net.IPNet
 }
 
-func NewServer(config *model.Domain) (*Server, error) {
+func NewServer(config *model.Domain, domain string) (*Server, error) {
 	server := &Server{
-		Domain:    *config,
-		l:         log.NewLogger(config.Domain).Sugar(),
-		rules:     make(map[string]*RuleSet),
-		dnsClient: new(dns.Client),
+		Domain:     *config,
+		DomainName: domain,
+		l:          log.NewLogger(domain).Sugar(),
+		rules:      make(map[string]*RuleSet),
+		dnsClient:  new(dns.Client),
 	}
-	if !strings.HasSuffix(server.Domain.Domain, ".") {
+	if !strings.HasSuffix(server.DomainName, ".") {
 		server.l.Warn("Record domain missing `.` suffix, automatically add it.")
-		server.Domain.Domain += "."
+		server.DomainName += "."
 	}
 
 	if server.Domain.Authoritative {
@@ -77,7 +80,7 @@ func NewServer(config *model.Domain) (*Server, error) {
 		server.dbClient = db
 	}
 
-	cacheClient, err := cache.NewClient(server.Domain.Domain, server.TTL)
+	cacheClient, err := cache.NewClient(server.DomainName, server.TTL)
 	if err != nil {
 		server.l.Errorf("Failed to create cache client: %s", err)
 		return nil, err
@@ -85,8 +88,12 @@ func NewServer(config *model.Domain) (*Server, error) {
 
 	server.cacheClient = cacheClient
 
-	for _, rule := range server.Domain.Rules {
-		var set RuleSet
+	for name, rule := range server.Domain.Rules {
+		set := RuleSet{
+			Name:   name,
+			Server: server,
+			l:      server.l.Named(name),
+		}
 
 		set.cidrs = make([]*net.IPNet, len(rule.CIDRs))
 		for i, cid := range rule.CIDRs {
@@ -101,27 +108,25 @@ func NewServer(config *model.Domain) (*Server, error) {
 				return nil, err
 			}
 
-			if err := server.dbClient.Table(rule.Name).AutoMigrate(&model.Record{}); err != nil {
+			if err := server.dbClient.Table(name).AutoMigrate(&model.Record{}); err != nil {
 				server.l.Errorf("Failed to auto migrate record: %s", err)
 				return nil, err
 			}
 
 			set.cidrs[i] = cidr
-			server.rules[cid] = &set
 		}
 
-		set.Rule = rule
-		set.Server = server
-		set.l = server.l.Named(rule.Name)
 		go func() {
 			set.RefreshRecords()
 			for range time.Tick(time.Duration(server.TTL) * time.Second) {
 				set.RefreshRecords()
 			}
 		}()
+
+		server.rules[name] = &set
 	}
 
-	dns.HandleFunc(server.Domain.Domain, server.handle)
+	dns.HandleFunc(server.DomainName, server.handle)
 
 	return server, nil
 }
@@ -191,7 +196,7 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *RuleSet) findRecords(name string, quesType uint16) []model.Record {
-	name = strings.TrimSuffix(name, s.Domain.Domain)
+	name = strings.TrimSuffix(name, s.DomainName)
 	name = strings.TrimSuffix(name, ".")
 	records, err := s.cacheClient.FindRecords(name, model.ReadRecordType(quesType).String(), s.Name)
 	if err != nil {
@@ -239,8 +244,8 @@ func (s *RuleSet) RefreshRecords() {
 			if record.Disabled {
 				continue
 			}
-			if strings.HasSuffix(record.Host, s.Domain.Domain) {
-				record.Host = strings.TrimSuffix(record.Host, s.Domain.Domain)
+			if strings.HasSuffix(record.Host, s.DomainName) {
+				record.Host = strings.TrimSuffix(record.Host, s.DomainName)
 				s.l.Warnf("DNS record %s does not need domain suffix, automatically remove it.", record.Host)
 			}
 
@@ -272,7 +277,7 @@ func (s *RuleSet) RefreshRecords() {
 
 func (s *Server) Header(r *model.Record) dns.RR_Header {
 	return dns.RR_Header{
-		Name:   r.Host + s.Domain.Domain,
+		Name:   r.Host + "." + s.DomainName,
 		Rrtype: r.Type.DnsType(),
 		Class:  dns.ClassINET,
 		Ttl:    s.TTL,
@@ -281,15 +286,16 @@ func (s *Server) Header(r *model.Record) dns.RR_Header {
 
 func (s *Server) MatchHandler(ip net.IP) *RuleSet {
 	finder := func(ip net.IP) string {
+		ruleName := ""
 		for _, rule := range s.rules {
 			for _, cidr := range rule.cidrs {
 				if cidr.Contains(ip) {
-					return rule.Name
+					ruleName = rule.Name
 				}
 			}
 		}
 
-		return ""
+		return ruleName
 	}
 
 	var handlerName string

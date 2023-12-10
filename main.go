@@ -10,15 +10,14 @@ import (
 var servers = make(map[string]*server.Server)
 
 func main() {
-	for _, domain := range utils.C.Domains {
-		domain := domain
-		serv, err := server.NewServer(&domain)
+	for name, domain := range utils.C.Domains {
+		serv, err := server.NewServer(&domain, name)
 		if err != nil {
-			zap.S().Errorf("Failed to create server for domain %s: %s", domain.Domain, err)
+			zap.S().Errorf("Failed to create server for domain %s: %s", name, err)
 			continue
 		}
 
-		servers[domain.Domain] = serv
+		servers[name] = serv
 	}
 
 	defer func() {
