@@ -2,6 +2,9 @@ name: Build
 
 on: [push, pull_request]
 
+permissions:
+  contents: write
+
 jobs:
 
   go-tests:
@@ -83,9 +86,10 @@ jobs:
         uses: actions-ecosystem/action-get-latest-tag@v1.6.0
 
       - name: Release
-        run: yarn global add semantic-release@17.4.4 && semantic-release
         env:
-          GH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: yarn global add semantic-release && semantic-release
 
       - name: Fetch Current version
         id: get-current-tag
