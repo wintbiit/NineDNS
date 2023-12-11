@@ -1,5 +1,10 @@
 package model
 
+import (
+	"strconv"
+	"strings"
+)
+
 type Config struct {
 	Addr    string            `json:"addr"`
 	Debug   bool              `json:"debug"`
@@ -21,5 +26,37 @@ type Domain struct {
 }
 
 type Rule struct {
-	CIDRs []string `json:"cidrs"`
+	CIDRs []string   `json:"cidrs"`
+	Ports []PortRule `json:"ports"`
+	Types []string   `json:"types"`
+}
+
+type PortRule string
+
+func (p *PortRule) Contains(port int) bool {
+	if strings.Count(string(*p), "-") == 1 {
+		ports := strings.Split(string(*p), "-")
+		if len(ports) != 2 {
+			return false
+		}
+
+		start, err := strconv.Atoi(ports[0])
+		if err != nil {
+			return false
+		}
+
+		end, err := strconv.Atoi(ports[1])
+		if err != nil {
+			return false
+		}
+
+		return port >= start && port <= end
+	}
+
+	por, err := strconv.Atoi(string(*p))
+	if err == nil {
+		return por == port
+	}
+
+	return false
 }

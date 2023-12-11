@@ -108,22 +108,13 @@ func (s *Server) checkConfig() {
 func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 	remoteAddr := w.RemoteAddr()
 	s.l.Debugf("Receive DNS request {%+v} from %s: %s", r, remoteAddr.Network(), remoteAddr.String())
-	var remoteIp net.IP
-	if remoteAddr.Network() == "udp" {
-		remoteIp = remoteAddr.(*net.UDPAddr).IP
-	} else if remoteAddr.Network() == "tcp" {
-		remoteIp = remoteAddr.(*net.TCPAddr).IP
-	} else {
-		s.l.Warnf("Unsupported network %s", remoteAddr.Network())
-		return
-	}
 
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Authoritative = s.Authoritative
 	m.RecursionAvailable = s.Recursion
 
-	handler := s.MatchHandler(remoteIp)
+	handler := s.MatchHandler(w)
 
 	if handler == nil {
 		s.l.Warnf("No rule found for %s", remoteAddr)
@@ -178,14 +169,34 @@ func (s *Server) Header(r *model.Record) dns.RR_Header {
 	}
 }
 
-func (s *Server) MatchHandler(ip net.IP) *RuleSet {
+func (s *Server) MatchHandler(w dns.ResponseWriter) *RuleSet {
+	addr := w.RemoteAddr()
+	var ip net.IP
+	var port int
+	var zone, network string
+	if addr.Network() == "tcp" {
+		addr := addr.(*net.TCPAddr)
+		ip = addr.IP
+		port = addr.Port
+		zone = addr.Zone
+		network = addr.Network()
+	} else if addr.Network() == "udp" {
+		addr := addr.(*net.UDPAddr)
+		ip = addr.IP
+		port = addr.Port
+		zone = addr.Zone
+	} else {
+		s.l.Warnf("Unknown network type %s", addr.Network())
+		return nil
+	}
+
 	var handlerName string
 	var err error
 
 	handlerName, err = s.cacheClient.GetRuntimeCache("handler:" + ip.String())
 	if err != nil {
 		if err == redis.Nil {
-			handlerName = s.matchHandler(ip)
+			handlerName = s.matchHandler(ip, port, zone, network)
 			if handlerName == "" {
 				return nil
 			}
@@ -209,13 +220,12 @@ func (s *Server) MatchHandler(ip net.IP) *RuleSet {
 	return handler
 }
 
-func (s *Server) matchHandler(ip net.IP) string {
+func (s *Server) matchHandler(ip net.IP, port int, zone, network string) string {
 	ruleName := ""
 	for _, rule := range s.rules {
-		for _, cidr := range rule.cidrs {
-			if cidr.Contains(ip) {
-				ruleName = rule.Name
-			}
+		if rule.ShouldHandle(ip, port, zone, network) {
+			ruleName = rule.Name
+			break
 		}
 	}
 

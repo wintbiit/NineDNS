@@ -24,20 +24,58 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 		Server: s,
 		Name:   name,
 		l:      s.l.Named(name),
+		cidrs:  make([]*net.IPNet, len(rule.CIDRs)),
 	}
 
 	// Init CIDR rules
-	for _, cidr := range ruleSet.CIDRs {
+	for i, cidr := range ruleSet.CIDRs {
 		_, ipNet, err := net.ParseCIDR(cidr)
 		if err != nil {
 			s.l.Errorf("Failed to parse CIDR %s: %s", cidr, err)
 			continue
 		}
 
-		ruleSet.cidrs = append(ruleSet.cidrs, ipNet)
+		ruleSet.cidrs[i] = ipNet
 	}
 
 	return ruleSet
+}
+
+func (s *RuleSet) ShouldHandle(ip net.IP, port int, zone, network string) bool {
+	matchers := 0
+	matched := 0
+
+	if len(s.cidrs) > 0 {
+		matchers++
+		for _, cidr := range s.cidrs {
+			if cidr.Contains(ip) {
+				matched++
+				break
+			}
+		}
+	}
+
+	if len(s.Ports) > 0 {
+		matchers++
+		for _, portRule := range s.Ports {
+			if portRule.Contains(port) {
+				matched++
+				break
+			}
+		}
+	}
+
+	if len(s.Types) > 0 {
+		matchers++
+		for _, typ := range s.Types {
+			if typ == network {
+				matched++
+				break
+			}
+		}
+	}
+
+	return matchers == matched
 }
 
 func (s *RuleSet) findRecords(name string, quesType uint16) []model.Record {
