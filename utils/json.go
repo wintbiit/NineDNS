@@ -1,15 +1,18 @@
 package utils
 
 import (
+	"encoding/json"
 	"io"
-
-	"github.com/bytedance/sonic"
 )
 
-var json = sonic.ConfigFastest
-
+// var json = sonic.ConfigFastest
 func MarshalToString(v interface{}) (string, error) {
-	return json.MarshalToString(v)
+	// return json.MarshalToString(v)
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func Marshal(v interface{}) ([]byte, error) {
@@ -21,7 +24,8 @@ func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
 }
 
 func UnmarshalFromString(str string, v interface{}) error {
-	return json.UnmarshalFromString(str, v)
+	// return json.UnmarshalFromString(str, v)
+	return json.Unmarshal([]byte(str), v)
 }
 
 func Unmarshal(data []byte, v interface{}) error {
