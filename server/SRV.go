@@ -1,20 +1,32 @@
 package server
 
-import "github.com/miekg/dns"
+import (
+	"fmt"
 
-func (s *RuleSet) handleSRV(r *dns.Msg, q *dns.Question, m *dns.Msg) {
+	"github.com/miekg/dns"
+)
+
+func (s *RuleSet) handleSRV(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
 	record := s.findRecord(q.Name, q.Qtype)
 
 	if record == nil {
-		m.SetRcode(r, dns.RcodeNameError)
-		return
+		if !s.Recursion {
+			return fmt.Errorf("no record found for question: %+v", q)
+		}
+
+		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
+		resp, _, err := s.dnsClient.Exchange(r, s.Upstream)
+		if err != nil {
+			return err
+		}
+		m.Answer = append(m.Answer, resp.Answer...)
+
+		return nil
 	}
 
 	srv, err := record.Value.SRV()
 	if err != nil {
-		s.l.Errorf("Failed to parse SRV record: %s", err)
-		m.SetRcode(r, dns.RcodeServerFailure)
-		return
+		return err
 	}
 
 	m.Answer = append(m.Answer, &dns.SRV{
@@ -24,4 +36,6 @@ func (s *RuleSet) handleSRV(r *dns.Msg, q *dns.Question, m *dns.Msg) {
 		Port:     srv.Port,
 		Target:   srv.Target,
 	})
+
+	return nil
 }

@@ -2,14 +2,13 @@
   "addr": ":53",
   "debug": true,
   "domains": {
-    "example.com": {
+    "example.com.": {
       "authoritative": true,
       "recursion": false,
       "upstream": "223.5.5.5:53",
       "ttl": 600,
       "providers": {
-        "mysql": "root:123456@tcp(localhost:3306)/dns",
-        "sqlite": "dns.db"
+        "mysql": "root:123456@tcp(localhost:3306)/dns"
       },
       "rules": {
         "all": {

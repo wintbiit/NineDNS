@@ -1,10 +1,13 @@
 package server
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"sort"
 	"strings"
+
+	"github.com/miekg/dns"
 
 	"github.com/wintbiit/ninedns/model"
 	"go.uber.org/zap"
@@ -39,6 +42,58 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 	}
 
 	return ruleSet
+}
+
+func (s *RuleSet) query(r, m *dns.Msg) {
+	// 1. Try CNAME
+	err := s.handleCNAME(r, &r.Question[0], m)
+	if err == nil {
+		return
+	}
+
+	// 2. Resolve according to question type
+	for _, q := range r.Question {
+		err = s.question(&q, r, m)
+		if err != nil {
+			s.l.Errorf("Failed to handle DNS question: %s", err)
+			m.SetRcode(r, dns.RcodeNameError)
+			continue
+		}
+	}
+}
+
+func (s *RuleSet) question(q *dns.Question, r, m *dns.Msg) error {
+	var err error
+	switch q.Qtype {
+	case dns.TypeA:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleA(r, q, m)
+	case dns.TypeAAAA:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleAAAA(r, q, m)
+	case dns.TypeCNAME:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleCNAME(r, q, m)
+	case dns.TypeTXT:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleTXT(r, q, m)
+	case dns.TypeNS:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleNS(r, q, m)
+	case dns.TypeMX:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleMX(r, q, m)
+	case dns.TypeSRV:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleSRV(r, q, m)
+	case dns.TypeSOA:
+		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
+		err = s.handleSOA(r, q, m)
+	default:
+		err = fmt.Errorf("unsupported DNS question type: %s", dns.TypeToString[q.Qtype])
+	}
+
+	return err
 }
 
 func (s *RuleSet) ShouldHandle(ip net.IP, port int, zone, network string) bool {
@@ -81,6 +136,9 @@ func (s *RuleSet) ShouldHandle(ip net.IP, port int, zone, network string) bool {
 func (s *RuleSet) findRecords(name string, quesType uint16) []model.Record {
 	name = strings.TrimSuffix(name, s.DomainName)
 	name = strings.TrimSuffix(name, ".")
+	if name == "" {
+		name = "@"
+	}
 	records, err := s.cacheClient.FindRecords(name, model.ReadRecordType(quesType).String(), s.Name)
 	if err != nil {
 		s.l.Errorf("Failed to query records: %s", err)

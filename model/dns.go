@@ -35,20 +35,25 @@ type Record struct {
 }
 
 type SOARecord struct {
-	NS      string `json:"ns"`
-	MBox    string `json:"mbox"`
-	Serial  uint32 `json:"serial"`
-	Refresh uint32 `json:"refresh"`
-	Retry   uint32 `json:"retry"`
-	Expire  uint32 `json:"expire"`
-	MinTTL  uint32 `json:"minttl"`
+	NS      string
+	MBox    string
+	Serial  uint32
+	Refresh uint32
+	Retry   uint32
+	Expire  uint32
+	MinTTL  uint32
 }
 
 type SRVRecord struct {
-	Priority uint16 `json:"priority"`
-	Weight   uint16 `json:"weight"`
-	Port     uint16 `json:"port"`
-	Target   string `json:"target"`
+	Priority uint16
+	Weight   uint16
+	Port     uint16
+	Target   string
+}
+
+type MXRecord struct {
+	Preference uint16 `json:"preference"`
+	MX         string `json:"mx"`
 }
 
 func (v *RecordValue) IP() net.IP {
@@ -138,12 +143,30 @@ func (v *RecordValue) SRV() (*SRVRecord, error) {
 	return &srv, nil
 }
 
+func (v *RecordValue) MX() (*MXRecord, error) {
+	sp := strings.Split(string(*v), " ")
+	if len(sp) != 2 {
+		return nil, fmt.Errorf("invalid MX record: %s", string(*v))
+	}
+
+	var mx MXRecord
+	preference, err := strconv.ParseUint(sp[0], 10, 16)
+	if err != nil {
+		return nil, err
+	}
+
+	mx.Preference = uint16(preference)
+	mx.MX = sp[1]
+
+	return &mx, nil
+}
+
 func ReadRecordType(t uint16) RecordType {
 	return RecordType(dns.TypeToString[t])
 }
 
-func (t *RecordType) DnsType() uint16 {
-	switch *t {
+func (t RecordType) DnsType() uint16 {
+	switch t {
 	case RecordTypeA:
 		return dns.TypeA
 	case RecordTypeAAAA:

@@ -124,36 +124,7 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 
 	s.l.Debugf("Found rule for %s: %+v", remoteAddr, handler)
 
-	for _, q := range r.Question {
-		switch q.Qtype {
-		case dns.TypeA:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleA(r, &q, m)
-		case dns.TypeAAAA:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleAAAA(r, &q, m)
-		case dns.TypeCNAME:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleCNAME(r, &q, m)
-		case dns.TypeTXT:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleTXT(r, &q, m)
-		case dns.TypeNS:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleNS(r, &q, m)
-		case dns.TypeMX:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleMX(r, &q, m)
-		case dns.TypeSRV:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleSRV(r, &q, m)
-		case dns.TypeSOA:
-			s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-			handler.handleSOA(r, &q, m)
-		default:
-			s.l.Warnf("Unsupported DNS question type: %s", dns.TypeToString[q.Qtype])
-		}
-	}
+	handler.query(r, m)
 
 	if err := w.WriteMsg(m); err != nil {
 		s.l.Errorf("Failed to write response: %s", err)

@@ -26,6 +26,8 @@ func main() {
 		}
 	}()
 
+	zap.S().Infof("Nine DNS started on %s", utils.C.Addr)
+
 	serv := &dns.Server{Addr: utils.C.Addr, Net: "udp"}
 	if err := serv.ListenAndServe(); err != nil {
 		zap.S().Fatal(err)
