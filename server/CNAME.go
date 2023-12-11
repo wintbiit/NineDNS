@@ -7,22 +7,27 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *RuleSet) handleCNAME(r, m *dns.Msg, name string) error {
+type ResolverCNAME struct{}
+
+func init() {
+	resolvers[dns.TypeCNAME] = &ResolverCNAME{}
+}
+
+func (_ *ResolverCNAME) Resolve(s *RuleSet, r *dns.Msg, name string) ([]dns.RR, error) {
 	record := s.findRecord(name, dns.TypeCNAME)
 	if record == nil {
 		if !s.Recursion {
-			return fmt.Errorf("no record found for question: %+v", name)
+			return nil, fmt.Errorf("no record found for question: %+v", name)
 		}
 
 		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
 		resp, _, err := s.dnsClient.Exchange(r, s.Upstream)
 		if err != nil {
 			s.l.Errorf("Failed to forward request to upstream: %s", err)
-			return err
+			return nil, err
 		}
-		m.Answer = append(m.Answer, resp.Answer...)
 
-		return nil
+		return resp.Answer, nil
 	}
 
 	s.l.Infof("Response for question: %+v", name)
@@ -30,12 +35,12 @@ func (s *RuleSet) handleCNAME(r, m *dns.Msg, name string) error {
 	cname := record.Value.String()
 	cname = dns.Fqdn(cname)
 
-	m.Answer = append(m.Answer, &dns.CNAME{
+	rr := &dns.CNAME{
 		Hdr:    s.Header(record),
 		Target: cname,
-	})
+	}
 
-	return nil
+	return []dns.RR{rr}, nil
 }
 
 func (s *RuleSet) localCNAME(name string) string {

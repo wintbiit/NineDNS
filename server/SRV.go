@@ -6,36 +6,41 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *RuleSet) handleSRV(r, m *dns.Msg, name string) error {
+type ResolverSRV struct{}
+
+func init() {
+	resolvers[dns.TypeSRV] = &ResolverSRV{}
+}
+
+func (_ *ResolverSRV) Resolve(s *RuleSet, r *dns.Msg, name string) ([]dns.RR, error) {
 	record := s.findRecord(name, dns.TypeSRV)
 
 	if record == nil {
 		if !s.Recursion {
-			return fmt.Errorf("no record found for question: %+v", name)
+			return nil, fmt.Errorf("no record found for question: %+v", name)
 		}
 
 		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
 		resp, _, err := s.dnsClient.Exchange(r, s.Upstream)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		m.Answer = append(m.Answer, resp.Answer...)
 
-		return nil
+		return resp.Answer, nil
 	}
 
 	srv, err := record.Value.SRV()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	m.Answer = append(m.Answer, &dns.SRV{
+	rr := &dns.SRV{
 		Hdr:      s.Header(record),
 		Priority: srv.Priority,
 		Weight:   srv.Weight,
 		Port:     srv.Port,
 		Target:   srv.Target,
-	})
+	}
 
-	return nil
+	return []dns.RR{rr}, nil
 }

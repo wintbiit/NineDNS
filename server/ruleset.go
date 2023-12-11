@@ -21,6 +21,12 @@ type RuleSet struct {
 	cidrs []*net.IPNet
 }
 
+type Resolver interface {
+	Resolve(*RuleSet, *dns.Msg, string) ([]dns.RR, error)
+}
+
+var resolvers = make(map[uint16]Resolver)
+
 func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 	ruleSet := &RuleSet{
 		Rule:   rule,
@@ -47,13 +53,14 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 func (s *RuleSet) query(r, m *dns.Msg) {
 	for _, q := range r.Question {
 		// 1. Try CNAME
+		name := q.Name
 		cname := s.localCNAME(q.Name)
 		if cname != "" {
 			s.l.Infof("Question %s CNAME hit: %s", q.String(), cname)
 			q.Name = cname
 		}
 
-		err := s.question(&q, r, m)
+		err := s.question(&q, r, m, name)
 		if err != nil {
 			s.l.Warnf("Failed to handle question %s: %s", q.String(), err)
 			m.SetRcode(r, dns.RcodeNameError)
@@ -62,38 +69,23 @@ func (s *RuleSet) query(r, m *dns.Msg) {
 	}
 }
 
-func (s *RuleSet) question(q *dns.Question, r, m *dns.Msg) error {
-	var err error
-	switch q.Qtype {
-	case dns.TypeA:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleA(r, m, q.Name)
-	case dns.TypeAAAA:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleAAAA(r, m, q.Name)
-	case dns.TypeCNAME:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleCNAME(r, m, q.Name)
-	case dns.TypeTXT:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleTXT(r, m, q.Name)
-	case dns.TypeNS:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleNS(r, m, q.Name)
-	case dns.TypeMX:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleMX(r, m, q.Name)
-	case dns.TypeSRV:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleSRV(r, m, q.Name)
-	case dns.TypeSOA:
-		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleSOA(r, m, q.Name)
-	default:
-		err = fmt.Errorf("unsupported DNS question type: %s", dns.TypeToString[q.Qtype])
+func (s *RuleSet) question(q *dns.Question, r, m *dns.Msg, name string) error {
+	resolver, ok := resolvers[q.Qtype]
+	if !ok {
+		return fmt.Errorf("unsupported DNS question type: %s", dns.TypeToString[q.Qtype])
 	}
 
-	return err
+	records, err := resolver.Resolve(s, r, q.Name)
+	if err != nil {
+		return err
+	}
+
+	for _, record := range records {
+		record.Header().Name = name
+		m.Answer = append(m.Answer, record)
+	}
+
+	return nil
 }
 
 func (s *RuleSet) ShouldHandle(ip net.IP, port int, zone, network string) bool {

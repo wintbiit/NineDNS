@@ -2,22 +2,27 @@ package server
 
 import "github.com/miekg/dns"
 
-func (s *RuleSet) handleTXT(r, m *dns.Msg, name string) error {
+type ResolverTXT struct{}
+
+func init() {
+	resolvers[dns.TypeTXT] = &ResolverTXT{}
+}
+
+func (_ *ResolverTXT) Resolve(s *RuleSet, r *dns.Msg, name string) ([]dns.RR, error) {
 	records := s.findRecords(name, dns.TypeTXT)
 
 	if records == nil {
 		if !s.Recursion {
-			return nil
+			return nil, nil
 		}
 
 		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
 		resp, _, err := s.dnsClient.Exchange(r, s.Upstream)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		m.Answer = append(m.Answer, resp.Answer...)
 
-		return nil
+		return resp.Answer, nil
 	}
 
 	txt := make([]string, len(records))
@@ -25,10 +30,10 @@ func (s *RuleSet) handleTXT(r, m *dns.Msg, name string) error {
 		txt[i] = record.Value.String()
 	}
 
-	m.Answer = append(m.Answer, &dns.TXT{
+	rr := &dns.TXT{
 		Hdr: s.Header(&records[0]),
 		Txt: txt,
-	})
+	}
 
-	return nil
+	return []dns.RR{rr}, nil
 }
