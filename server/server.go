@@ -113,6 +113,11 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 	m.SetReply(r)
 	m.Authoritative = s.Authoritative
 	m.RecursionAvailable = s.Recursion
+	if r.IsTsig() != nil {
+		if w.TsigStatus() != nil {
+			m.SetTsig(s.Tsig.KeyName, dns.HmacSHA256, 300, time.Now().Unix())
+		}
+	}
 
 	handler := s.MatchHandler(w)
 
@@ -136,6 +141,8 @@ func (s *Server) Header(r *model.Record) dns.RR_Header {
 	if r.Host != "@" {
 		name = r.Host + "." + s.DomainName
 	}
+	name = dns.Fqdn(name)
+
 	return dns.RR_Header{
 		Name:   name,
 		Rrtype: r.Type.DnsType(),

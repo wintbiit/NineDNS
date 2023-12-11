@@ -28,9 +28,7 @@ func (s *RuleSet) handleCNAME(r, m *dns.Msg, name string) error {
 	s.l.Infof("Response for question: %+v", name)
 
 	cname := record.Value.String()
-	if !strings.HasSuffix(cname, ".") {
-		cname = cname + "." + s.DomainName
-	}
+	cname = dns.Fqdn(cname)
 
 	m.Answer = append(m.Answer, &dns.CNAME{
 		Hdr:    s.Header(record),

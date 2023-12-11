@@ -31,7 +31,7 @@ func (s *RuleSet) handleSOA(r, m *dns.Msg, name string) error {
 	}
 	m.Answer = append(m.Answer, &dns.SOA{
 		Hdr:     s.Header(record),
-		Ns:      soa.NS,
+		Ns:      dns.Fqdn(soa.NS),
 		Mbox:    soa.MBox,
 		Serial:  soa.Serial,
 		Refresh: soa.Refresh,

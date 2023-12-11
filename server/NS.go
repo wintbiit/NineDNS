@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -29,7 +28,7 @@ func (s *RuleSet) handleNS(r, m *dns.Msg, name string) error {
 
 	m.Answer = append(m.Answer, &dns.NS{
 		Hdr: s.Header(record),
-		Ns:  strings.TrimSuffix(record.Value.String(), "."),
+		Ns:  dns.Fqdn(record.Value.String()),
 	})
 
 	return nil
