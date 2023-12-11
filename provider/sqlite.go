@@ -43,5 +43,5 @@ func (p *SQLiteProvider) Provide(string) ([]model.Record, error) {
 }
 
 func (p *SQLiteProvider) AutoMigrate(table string) error {
-	return p.DB.AutoMigrate(&model.Record{})
+	return p.DB.Table(table).AutoMigrate(&model.Record{})
 }
