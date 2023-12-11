@@ -2,17 +2,17 @@
 [![Build](https://github.com/wintbiit/NineDNS/actions/workflows/build.yml/badge.svg)](https://github.com/wintbiit/NineDNS/actions/workflows/build.yml)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/wintbiit/NineDNS)](https://github.com/wintbiit/NineDNS/releases)
 
-Nine DNS is a flexible and high-performance dns server.
+Nine DNS is a flexible DNS server that offers DNS resolution based on the question source.
 
 ## Why NineDNS
 ### 1. ACL DNS Resolve
 `NineDNS` aims to differentiated dns resolve based on question source.
 
 ### 2. DNS Records from Remote
-Meanwhile `NineDNS` supports providing dns records from remote databases such as `MySQL` or `PostgreSQL`
+Moreover, NineDNS supports retrieving DNS records from remote databases such as MySQL or PostgreSQL.
 
 ### 3. Cloud Native
-`NineDNS` can be part of cloud native component. `NineDNS` supports cache sharing, load balancing and log tracing.
+`NineDNS` can integrate as part of cloud-native components. It supports cache sharing, load balancing, and log tracing.
 
 ## Usage
 Define a config:
@@ -50,7 +50,7 @@ Define a config:
 ```
 Read [Record Provider](provider/README.md) for more details about `providers`.
 
-And that's all. Run `NineDNS` with config file:
+And that's all! Run `NineDNS` with config file now:
 ```shell
 $ ninedns -c config.json
 ```
