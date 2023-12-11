@@ -18,6 +18,7 @@ func init() {
 	if err != nil {
 		zap.S().Fatalf("Failed to open config file: %s", err)
 	}
+	defer f.Close()
 
 	var conf model.Config
 	if err = UnmarshalFromReader(f, &conf); err != nil {
