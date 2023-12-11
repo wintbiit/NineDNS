@@ -39,7 +39,7 @@ func (_ *SRV) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR
 		Priority: srv.Priority,
 		Weight:   srv.Weight,
 		Port:     srv.Port,
-		Target:   srv.Target,
+		Target:   dns.Fqdn(srv.Target),
 	}
 
 	return []dns.RR{rr}, nil

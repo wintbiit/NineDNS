@@ -36,7 +36,7 @@ func (_ *MX) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR,
 	rr := &dns.MX{
 		Hdr:        s.Header(record),
 		Preference: mx.Preference,
-		Mx:         mx.MX,
+		Mx:         dns.Fqdn(mx.MX),
 	}
 
 	return []dns.RR{rr}, nil

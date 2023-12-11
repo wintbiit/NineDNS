@@ -49,7 +49,3 @@ func NewClient(domain string, ttl uint32) (*RedisClient, error) {
 
 	return client, nil
 }
-
-func (c *RedisClient) Close() error {
-	return c.Client.Close()
-}

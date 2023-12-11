@@ -28,11 +28,10 @@ func (_ *CNAME) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.
 	}
 
 	cname := record.Value.String()
-	cname = dns.Fqdn(cname)
 
 	rr := &dns.CNAME{
 		Hdr:    s.Header(record),
-		Target: cname,
+		Target: dns.Fqdn(cname),
 	}
 
 	return []dns.RR{rr}, nil
