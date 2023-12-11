@@ -21,6 +21,8 @@ func NewProvider(name, config string) (Provider, error) {
 		return newFileProvider(config)
 	case "dir":
 		return newDirProvider(config)
+	case "lark":
+		return newLarkProvider(config)
 	default:
 		return nil, fmt.Errorf("unknown provider: %s", name)
 	}

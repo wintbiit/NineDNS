@@ -189,7 +189,7 @@ func (s *RuleSet) RefreshRecords() {
 		records = append(records, recs...)
 	}
 
-	for _, record := range records {
+	for index, record := range records {
 		if record.Disabled {
 			continue
 		}
@@ -206,7 +206,10 @@ func (s *RuleSet) RefreshRecords() {
 		if err := s.cacheClient.AddRecord(s.Name, &record); err != nil {
 			s.l.Errorf("Failed to add record %s: %s", record.Host, err)
 		}
+
+		records[index] = record
 	}
 
 	s.l.Infof("Refreshed %d records", len(records))
+	s.l.Debug("Refreshed records: %v", records)
 }
