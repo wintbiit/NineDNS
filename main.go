@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/miekg/dns"
 	"github.com/wintbiit/ninedns/server"
 	"github.com/wintbiit/ninedns/utils"
@@ -26,21 +24,6 @@ func main() {
 		for _, serv := range servers {
 			serv.Close()
 		}
-	}()
-
-	pidf, err := os.OpenFile("./.ninedns.pid", os.O_CREATE|os.O_RDWR, 0o644)
-	if err != nil {
-		zap.S().Fatalf("Failed to open pid file: %s", err)
-	}
-
-	_, err = pidf.WriteString(string(os.Getpid()))
-	if err != nil {
-		zap.S().Fatalf("Failed to write pid: %s", err)
-	}
-
-	defer func() {
-		pidf.Close()
-		os.Remove("./.ninedns.pid")
 	}()
 
 	zap.S().Infof("Nine DNS started on %s", utils.C.Addr)
