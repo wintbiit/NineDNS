@@ -6,12 +6,12 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *RuleSet) handleSOA(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
-	record := s.findRecord(q.Name, q.Qtype)
+func (s *RuleSet) handleSOA(r, m *dns.Msg, name string) error {
+	record := s.findRecord(name, dns.TypeSOA)
 
 	if record == nil {
 		if !s.Recursion {
-			return fmt.Errorf("no record found for question: %+v", q)
+			return fmt.Errorf("no record found for question: %+v", name)
 		}
 
 		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)

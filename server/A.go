@@ -6,11 +6,11 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *RuleSet) handleA(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
-	record := s.findRecord(q.Name, q.Qtype)
+func (s *RuleSet) handleA(r, m *dns.Msg, name string) error {
+	record := s.findRecord(name, dns.TypeA)
 	if record == nil {
 		if !s.Recursion {
-			return fmt.Errorf("no record found for question: %+v", q)
+			return fmt.Errorf("no record found for question: %+v", name)
 		}
 
 		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
@@ -19,12 +19,11 @@ func (s *RuleSet) handleA(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
 			s.l.Errorf("Failed to forward request to upstream: %s", err)
 			return err
 		}
-		m.Answer = append(m.Answer, resp.Answer...)
 
-		return nil
+		m.Answer = append(m.Answer, resp.Answer...)
 	}
 
-	s.l.Infof("Response for question: %+v", q)
+	s.l.Infof("Response for question: %+v", name)
 
 	m.Answer = append(m.Answer, &dns.A{
 		Hdr: s.Header(record),

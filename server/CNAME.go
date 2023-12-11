@@ -7,11 +7,11 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (s *RuleSet) handleCNAME(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
-	record := s.findRecord(q.Name, q.Qtype)
+func (s *RuleSet) handleCNAME(r, m *dns.Msg, name string) error {
+	record := s.findRecord(name, dns.TypeCNAME)
 	if record == nil {
 		if !s.Recursion {
-			return fmt.Errorf("no record found for question: %+v", q)
+			return fmt.Errorf("no record found for question: %+v", name)
 		}
 
 		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
@@ -25,7 +25,7 @@ func (s *RuleSet) handleCNAME(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
 		return nil
 	}
 
-	s.l.Infof("Response for question: %+v", q)
+	s.l.Infof("Response for question: %+v", name)
 
 	cname := record.Value.String()
 	if !strings.HasSuffix(cname, ".") {
@@ -34,8 +34,22 @@ func (s *RuleSet) handleCNAME(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
 
 	m.Answer = append(m.Answer, &dns.CNAME{
 		Hdr:    s.Header(record),
-		Target: record.Value.String(),
+		Target: cname,
 	})
 
 	return nil
+}
+
+func (s *RuleSet) localCNAME(name string) string {
+	record := s.findRecord(name, dns.TypeCNAME)
+	if record == nil {
+		return ""
+	}
+
+	cname := record.Value.String()
+	if !strings.HasSuffix(cname, ".") {
+		cname = cname + "." + s.DomainName
+	}
+
+	return cname
 }

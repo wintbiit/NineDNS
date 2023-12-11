@@ -26,7 +26,7 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 		Rule:   rule,
 		Server: s,
 		Name:   name,
-		l:      s.l.Named(name),
+		l:      s.l.Named(s.DomainName + "/" + name),
 		cidrs:  make([]*net.IPNet, len(rule.CIDRs)),
 	}
 
@@ -45,17 +45,17 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 }
 
 func (s *RuleSet) query(r, m *dns.Msg) {
-	// 1. Try CNAME
-	err := s.handleCNAME(r, &r.Question[0], m)
-	if err == nil {
-		return
-	}
-
-	// 2. Resolve according to question type
 	for _, q := range r.Question {
-		err = s.question(&q, r, m)
+		// 1. Try CNAME
+		cname := s.localCNAME(q.Name)
+		if cname != "" {
+			s.l.Infof("Question %s CNAME hit: %s", q.String(), cname)
+			q.Name = cname
+		}
+
+		err := s.question(&q, r, m)
 		if err != nil {
-			s.l.Errorf("Failed to handle DNS question: %s", err)
+			s.l.Warnf("Failed to handle question %s: %s", q.String(), err)
 			m.SetRcode(r, dns.RcodeNameError)
 			continue
 		}
@@ -67,28 +67,28 @@ func (s *RuleSet) question(q *dns.Question, r, m *dns.Msg) error {
 	switch q.Qtype {
 	case dns.TypeA:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleA(r, q, m)
+		err = s.handleA(r, m, q.Name)
 	case dns.TypeAAAA:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleAAAA(r, q, m)
+		err = s.handleAAAA(r, m, q.Name)
 	case dns.TypeCNAME:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleCNAME(r, q, m)
+		err = s.handleCNAME(r, m, q.Name)
 	case dns.TypeTXT:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleTXT(r, q, m)
+		err = s.handleTXT(r, m, q.Name)
 	case dns.TypeNS:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleNS(r, q, m)
+		err = s.handleNS(r, m, q.Name)
 	case dns.TypeMX:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleMX(r, q, m)
+		err = s.handleMX(r, m, q.Name)
 	case dns.TypeSRV:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleSRV(r, q, m)
+		err = s.handleSRV(r, m, q.Name)
 	case dns.TypeSOA:
 		s.l.Debugf("Receive DNS question type: %s", dns.TypeToString[q.Qtype])
-		err = s.handleSOA(r, q, m)
+		err = s.handleSOA(r, m, q.Name)
 	default:
 		err = fmt.Errorf("unsupported DNS question type: %s", dns.TypeToString[q.Qtype])
 	}

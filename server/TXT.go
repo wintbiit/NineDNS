@@ -2,8 +2,8 @@ package server
 
 import "github.com/miekg/dns"
 
-func (s *RuleSet) handleTXT(r *dns.Msg, q *dns.Question, m *dns.Msg) error {
-	records := s.findRecords(q.Name, q.Qtype)
+func (s *RuleSet) handleTXT(r, m *dns.Msg, name string) error {
+	records := s.findRecords(name, dns.TypeTXT)
 
 	if records == nil {
 		if !s.Recursion {

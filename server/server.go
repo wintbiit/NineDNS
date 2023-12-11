@@ -107,7 +107,7 @@ func (s *Server) checkConfig() {
 
 func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 	remoteAddr := w.RemoteAddr()
-	s.l.Debugf("Receive DNS request {%+v} from %s: %s", r, remoteAddr.Network(), remoteAddr.String())
+	s.l.Debugf("Query %+v from [%s]%s", r.Question, remoteAddr.Network(), remoteAddr.String())
 
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -132,8 +132,12 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *Server) Header(r *model.Record) dns.RR_Header {
+	name := s.DomainName
+	if r.Host != "@" {
+		name = r.Host + "." + s.DomainName
+	}
 	return dns.RR_Header{
-		Name:   r.Host + "." + s.DomainName,
+		Name:   name,
 		Rrtype: r.Type.DnsType(),
 		Class:  dns.ClassINET,
 		Ttl:    s.TTL,
