@@ -12,7 +12,11 @@ type SQLiteProvider struct {
 	file string
 }
 
-func newSQLiteProvider(file string) (*SQLiteProvider, error) {
+func init() {
+	constructors["sqlite"] = newSQLiteProvider
+}
+
+func newSQLiteProvider(file string) (Provider, error) {
 	provider := &SQLiteProvider{
 		file: file,
 	}

@@ -1,3 +1,5 @@
+//go:build !nolark
+
 package provider
 
 import (
@@ -17,7 +19,11 @@ type LarkProvider struct {
 	baseId string
 }
 
-func newLarkProvider(config string) (*LarkProvider, error) {
+func init() {
+	constructors["lark"] = newLarkProvider
+}
+
+func newLarkProvider(config string) (Provider, error) {
 	sp := strings.Split(config, " ")
 	if len(sp) != 3 {
 		return nil, fmt.Errorf("invalid lark config: %s you should use `${appId} ${appSecret} ${baseId}` format", config)

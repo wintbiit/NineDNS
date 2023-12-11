@@ -9,7 +9,9 @@
     ["@semantic-release/github", {
       "assets": [
         {"path": "dist/ninedns", "name": "ninedns-linux-amd64-${nextRelease.version}"},
-        {"path": "dist/ninedns.exe", "name": "ninedns-windows-amd64-${nextRelease.version}.exe"}
+        {"path": "dist/ninedns.exe", "name": "ninedns-windows-amd64-${nextRelease.version}.exe"},
+        {"path": "dist/ninedns-nolark", "name": "ninedns-nolark-linux-amd64-${nextRelease.version}"},
+        {"path": "dist/ninedns-nolark.exe", "name": "ninedns-nolark-windows-amd64-${nextRelease.version}.exe"}
       ]
     }]
   ]

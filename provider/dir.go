@@ -9,7 +9,11 @@ type DirProvider struct {
 	dir string
 }
 
-func newDirProvider(dir string) (*DirProvider, error) {
+func init() {
+	constructors["dir"] = newDirProvider
+}
+
+func newDirProvider(dir string) (Provider, error) {
 	provider := &DirProvider{
 		dir: dir,
 	}

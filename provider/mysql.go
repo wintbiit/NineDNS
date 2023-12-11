@@ -12,7 +12,11 @@ type MysqlProvider struct {
 	dsn string
 }
 
-func newMysqlProvider(dsn string) (*MysqlProvider, error) {
+func init() {
+	constructors["mysql"] = newMysqlProvider
+}
+
+func newMysqlProvider(dsn string) (Provider, error) {
 	provider := &MysqlProvider{
 		dsn: dsn,
 	}

@@ -9,7 +9,7 @@ config:
   }
 }
 ```
-Mysql Provider connects to a mysql database and reads records from it. Table name is rule set name.
+`Mysql Provider` connects to a mysql database and reads records from it. Table name is rule set name.
 SQL is re-read according to ttl
 
 Table schema:
@@ -39,7 +39,7 @@ config:
   }
 }
 ```
-Like Mysql Provider, SQLite Provider connects to a sqlite database and reads records from it. Table name is rule set name.
+Like `Mysql Provider`, `SQLite Provider` connects to a sqlite database and reads records from it. Table name is rule set name.
 SQL is re-read according to ttl
 
 > Using `github.com/glebarez/sqlite` as sqlite driver, please refer to this repo for more usage.
@@ -53,7 +53,7 @@ config:
   }
 }
 ```
-File Provider reads records from a file. File format is standard zone file format.
+`File Provider` reads records from a file. File format is standard zone file format.
 File Provider does not support ruleset variant, if you want to use variant, please use [Dir Provider](#dir-provider).
 File will be re-read according to ttl
 
@@ -66,6 +66,24 @@ config:
   }
 }
 ```
-Dir Provider reads records from a directory. File format is standard zone file format.
+`Dir Provider` reads records from a directory. File format is standard zone file format.
 ruleset name is used as file name.
 files in the directory will be re-read according to ttl
+
+### Lark Provider
+config:
+```json
+{
+  "provider": {
+    "lark": "cli_xxx xxx xxx"
+  }
+}
+```
+`Lark Provider` reads records from lark bitable. Also ruleset name is used as table name.
+
+#### Minimize binary size
+ Please note, lark provider introduced [oapi-lark-go](https://github.com/larksuite/oapi-sdk-go) and [sonic](https://github.com/bytedance/sonic),
+ which largely increases binary size. If you don't need lark provider, please disable it while build:
+ ```bash
+go build -tags "nolark"
+```

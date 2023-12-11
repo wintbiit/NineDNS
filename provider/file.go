@@ -17,7 +17,11 @@ type FileProvider struct {
 	file string
 }
 
-func newFileProvider(file string) (*FileProvider, error) {
+func init() {
+	constructors["file"] = newFileProvider
+}
+
+func newFileProvider(file string) (Provider, error) {
 	provider := &FileProvider{
 		file: file,
 	}

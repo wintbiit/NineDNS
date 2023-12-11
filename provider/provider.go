@@ -6,24 +6,18 @@ import (
 	"github.com/wintbiit/ninedns/model"
 )
 
+var constructors = make(map[string]func(string) (Provider, error))
+
 type Provider interface {
 	Provide(ruleset string) ([]model.Record, error)
 	AutoMigrate(table string) error
 }
 
 func NewProvider(name, config string) (Provider, error) {
-	switch name {
-	case "mysql":
-		return newMysqlProvider(config)
-	case "sqlite":
-		return newSQLiteProvider(config)
-	case "file":
-		return newFileProvider(config)
-	case "dir":
-		return newDirProvider(config)
-	case "lark":
-		return newLarkProvider(config)
-	default:
-		return nil, fmt.Errorf("unknown provider: %s", name)
+	constructor, ok := constructors[name]
+	if !ok {
+		return nil, fmt.Errorf("provider %s not found", name)
 	}
+
+	return constructor(config)
 }
