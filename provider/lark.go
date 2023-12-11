@@ -69,7 +69,7 @@ func (p *LarkProvider) Provide(ruleset string) ([]model.Record, error) {
 	for _, rec := range baseRec {
 		weight, err := strconv.ParseUint(rec.Fields["Weight"].(string), 10, 16)
 		if err != nil {
-			return nil, err
+			weight = 0
 		}
 
 		disabled, ok := rec.Fields["Disabled"].(bool)

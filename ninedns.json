@@ -8,7 +8,7 @@
       "upstream": "223.5.5.5:53",
       "ttl": 600,
       "providers": {
-        "mysql": "root:123456@tcp(localhost:3306)/dns"
+        "lark": ""
       },
       "rules": {
         "all": {
