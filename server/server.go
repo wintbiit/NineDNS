@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -79,7 +80,7 @@ func NewServer(config *model.Domain, domain string) (*Server, error) {
 func (s *Server) checkConfig() {
 	if !strings.HasSuffix(s.DomainName, ".") {
 		s.l.Warn("Record domain missing `.` suffix, automatically add it.")
-		s.DomainName += "."
+		s.DomainName = dns.Fqdn(s.DomainName)
 	}
 
 	if s.Domain.Authoritative {
@@ -101,7 +102,8 @@ func (s *Server) checkConfig() {
 	}
 
 	if s.Domain.Rules == nil {
-		s.l.Warn("Server rules is empty, please ensure it's correct.")
+		s.l.Warn("Server rules is empty, automatically added general rule.")
+		s.Domain.Rules = map[string]model.Rule{"": {}}
 	}
 }
 
@@ -123,7 +125,7 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 
 	if handler == nil {
 		s.l.Warnf("No rule found for %s", remoteAddr)
-		m.SetRcode(r, dns.RcodeRefused)
+		m.SetRcode(r, dns.RcodeNameError)
 		return
 	}
 
@@ -175,23 +177,16 @@ func (s *Server) MatchHandler(w dns.ResponseWriter) *RuleSet {
 	var handlerName string
 	var err error
 
-	handlerName, err = s.cacheClient.GetRuntimeCache("handler:" + ip.String())
+	handlerName, err = s.cacheClient.GetRuntimeCache(fmt.Sprintf("handler:%s:%s", ip.String(), s.DomainName))
 	if err != nil {
 		if err == redis.Nil {
 			handlerName = s.matchRuleset(ip, port, zone, network)
-			if handlerName == "" {
-				return nil
-			}
 			if err := s.cacheClient.AddRuntimeCache("handler:"+ip.String(), handlerName, time.Duration(s.TTL)*time.Second); err != nil {
 				s.l.Errorf("Failed to add runtime cache: %s", err)
 			}
 		} else {
 			s.l.Errorf("Failed to get runtime cache: %s", err)
 		}
-	}
-
-	if handlerName == "" {
-		return nil
 	}
 
 	handler, ok := s.rules[handlerName]

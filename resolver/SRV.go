@@ -13,7 +13,7 @@ func init() {
 	resolvers[dns.TypeSRV] = &SRV{}
 }
 
-func (_ *SRV) Resolve(s model.RuleProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+func (_ *SRV) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR, error) {
 	record := s.FindRecord(name, dns.TypeSRV)
 
 	if record == nil {

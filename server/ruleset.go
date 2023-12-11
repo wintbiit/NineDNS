@@ -202,7 +202,7 @@ func (s *RuleSet) RefreshRecords() {
 	}
 
 	s.l.Infof("Refreshed %d records", len(records))
-	s.l.Debug("Refreshed records: %v", records)
+	s.l.Debugf("Refreshed records: %v", records)
 }
 
 func (s *RuleSet) localCNAME(name string) string {

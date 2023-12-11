@@ -11,7 +11,7 @@ func init() {
 	resolvers[dns.TypeTXT] = &TXT{}
 }
 
-func (_ *TXT) Resolve(s model.RuleProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+func (_ *TXT) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR, error) {
 	records := s.FindRecords(name, dns.TypeTXT)
 
 	if records == nil {

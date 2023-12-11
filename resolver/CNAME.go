@@ -13,7 +13,7 @@ func init() {
 	resolvers[dns.TypeCNAME] = &CNAME{}
 }
 
-func (_ *CNAME) Resolve(s model.RuleProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+func (_ *CNAME) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR, error) {
 	record := s.FindRecord(name, dns.TypeCNAME)
 	if record == nil {
 		if !s.Recursion() {

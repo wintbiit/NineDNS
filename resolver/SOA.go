@@ -13,7 +13,7 @@ func init() {
 	resolvers[dns.TypeSOA] = &SOA{}
 }
 
-func (_ *SOA) Resolve(s model.RuleProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+func (_ *SOA) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR, error) {
 	record := s.FindRecord(name, dns.TypeSOA)
 
 	if record == nil {
