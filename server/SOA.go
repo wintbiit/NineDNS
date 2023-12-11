@@ -32,7 +32,7 @@ func (s *RuleSet) handleSOA(r, m *dns.Msg, name string) error {
 	m.Answer = append(m.Answer, &dns.SOA{
 		Hdr:     s.Header(record),
 		Ns:      dns.Fqdn(soa.NS),
-		Mbox:    soa.MBox,
+		Mbox:    dns.Fqdn(soa.MBox),
 		Serial:  soa.Serial,
 		Refresh: soa.Refresh,
 		Retry:   soa.Retry,
