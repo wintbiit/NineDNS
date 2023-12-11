@@ -6,7 +6,7 @@ import (
 
 func (s *RuleSet) handleA(r *dns.Msg, q *dns.Question, m *dns.Msg) {
 	if s.Recursion {
-		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.MySQL)
+		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
 		resp, _, err := s.dnsClient.Exchange(r, s.Upstream)
 		if err != nil {
 			s.l.Errorf("Failed to forward request to upstream: %s", err)

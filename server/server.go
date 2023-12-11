@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/driver/sqlite"
+	"github.com/wintbiit/ninedns/provider"
 
 	"github.com/redis/go-redis/v9"
 
@@ -16,8 +16,6 @@ import (
 	"github.com/wintbiit/ninedns/log"
 	"github.com/wintbiit/ninedns/model"
 	"go.uber.org/zap"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 type Server struct {
@@ -26,7 +24,7 @@ type Server struct {
 	l           *zap.SugaredLogger
 	dnsClient   *dns.Client
 	cacheClient cache.API
-	dbClient    *gorm.DB
+	providers   map[string]provider.Provider
 	rules       map[string]*RuleSet
 }
 
@@ -45,6 +43,7 @@ func NewServer(config *model.Domain, domain string) (*Server, error) {
 		l:          log.NewLogger(domain).Sugar(),
 		rules:      make(map[string]*RuleSet),
 		dnsClient:  new(dns.Client),
+		providers:  make(map[string]provider.Provider),
 	}
 	if !strings.HasSuffix(server.DomainName, ".") {
 		server.l.Warn("Record domain missing `.` suffix, automatically add it.")
@@ -73,24 +72,14 @@ func NewServer(config *model.Domain, domain string) (*Server, error) {
 		server.l.Warn("Server rules is empty, please ensure it's correct.")
 	}
 
-	if server.MySQL != "" {
-		db, err := gorm.Open(mysql.Open(server.MySQL), &gorm.Config{})
+	for name, conf := range server.Domain.Providers {
+		prov, err := provider.NewProvider(name, conf)
 		if err != nil {
-			server.l.Errorf("Failed to open MySQL %s: %s", server.MySQL, err)
+			server.l.Errorf("Failed to create provider %s: %s", name, err)
 			return nil, err
 		}
 
-		server.dbClient = db
-	}
-
-	if server.SQLite != "" {
-		db, err := gorm.Open(sqlite.Open(server.SQLite), &gorm.Config{})
-		if err != nil {
-			server.l.Errorf("Failed to open SQLite %s: %s", server.SQLite, err)
-			return nil, err
-		}
-
-		server.dbClient = db
+		server.providers[name] = prov
 	}
 
 	cacheClient, err := cache.NewClient(server.DomainName, server.TTL)
@@ -121,9 +110,11 @@ func NewServer(config *model.Domain, domain string) (*Server, error) {
 				return nil, err
 			}
 
-			if err := server.dbClient.Table(name).AutoMigrate(&model.Record{}); err != nil {
-				server.l.Errorf("Failed to auto migrate record: %s", err)
-				return nil, err
+			for _, p := range server.providers {
+				if err := p.AutoMigrate(name); err != nil {
+					server.l.Errorf("Failed to auto migrate table %s: %s", name, err)
+					return nil, err
+				}
 			}
 
 			set.cidrs[i] = cidr
@@ -250,42 +241,37 @@ func (s *RuleSet) findRecord(name string, quesType uint16) *model.Record {
 func (s *RuleSet) RefreshRecords() {
 	s.l.Info("Starting refresh records for rule set %s", s.Name)
 	var records []model.Record
-	defer func() {
-		records = append(records, s.Records...)
 
-		for _, record := range records {
-			if record.Disabled {
-				continue
-			}
-			if strings.HasSuffix(record.Host, s.DomainName) {
-				record.Host = strings.TrimSuffix(record.Host, s.DomainName)
-				s.l.Warnf("DNS record %s does not need domain suffix, automatically remove it.", record.Host)
-			}
-
-			if strings.HasSuffix(record.Host, ".") {
-				record.Host = strings.TrimSuffix(record.Host, ".")
-				s.l.Warnf("DNS record %s does not need `.` suffix, automatically remove it.", record.Host)
-			}
-
-			if err := s.cacheClient.AddRecord(s.Name, &record); err != nil {
-				s.l.Errorf("Failed to add record %s: %s", record.Host, err)
-			}
+	for _, prov := range s.providers {
+		recs, err := prov.Provide(s.Name)
+		if err != nil {
+			s.l.Errorf("Failed to provide records: %s", err)
+			continue
 		}
 
-		s.l.Infof("Refreshed %d records", len(records))
-	}()
-
-	if s.dbClient == nil {
-		return
+		records = append(records, recs...)
 	}
 
-	tx := s.dbClient.Begin()
-	defer tx.Rollback()
+	for _, record := range records {
+		if record.Disabled {
+			continue
+		}
+		if strings.HasSuffix(record.Host, s.DomainName) {
+			record.Host = strings.TrimSuffix(record.Host, s.DomainName)
+			s.l.Warnf("DNS record %s does not need domain suffix, automatically remove it.", record.Host)
+		}
 
-	if err := tx.Table(s.Name).Find(&records).Error; err != nil {
-		s.l.Errorf("Failed to query records: %s", err)
-		return
+		if strings.HasSuffix(record.Host, ".") {
+			record.Host = strings.TrimSuffix(record.Host, ".")
+			s.l.Warnf("DNS record %s does not need `.` suffix, automatically remove it.", record.Host)
+		}
+
+		if err := s.cacheClient.AddRecord(s.Name, &record); err != nil {
+			s.l.Errorf("Failed to add record %s: %s", record.Host, err)
+		}
 	}
+
+	s.l.Infof("Refreshed %d records", len(records))
 }
 
 func (s *Server) Header(r *model.Record) dns.RR_Header {

@@ -12,16 +12,14 @@ type Config struct {
 }
 
 type Domain struct {
-	Rules         map[string]Rule `json:"rules"`
-	Authoritative bool            `json:"authoritative,default=true"`
-	Recursion     bool            `json:"recursion,default=false"`
-	Upstream      string          `json:"upstream,default=127.0.0.1:53"`
-	MySQL         string          `json:"mysql"`
-	SQLite        string          `json:"sqlite"`
-	TTL           uint32          `json:"ttl,default=60"`
+	Rules         map[string]Rule   `json:"rules"`
+	Authoritative bool              `json:"authoritative,default=true"`
+	Recursion     bool              `json:"recursion,default=false"`
+	Upstream      string            `json:"upstream,default=127.0.0.1:53"`
+	Providers     map[string]string `json:"providers"`
+	TTL           uint32            `json:"ttl,default=60"`
 }
 
 type Rule struct {
-	CIDRs   []string `json:"cidrs"`
-	Records []Record `json:"records"`
+	CIDRs []string `json:"cidrs"`
 }

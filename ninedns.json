@@ -7,22 +7,17 @@
       "recursion": false,
       "upstream": "223.5.5.5:53",
       "ttl": 600,
-      "mysql": "root:123456@tcp(localhost:3306)/dns",
-      "sqlite": "dns.db",
+      "providers": {
+        "mysql": "root:123456@tcp(localhost:3306)/dns",
+        "sqlite": "dns.db"
+      },
       "rules": {
         "all": {
           "cidrs": [
             "0.0.0.0/0"
           ]
         }
-      },
-      "records": [
-        {
-          "host": "git",
-          "type": "CNAME",
-          "value": "qcloud.example.com"
-        }
-      ]
+      }
     }
   },
   "redis": {
