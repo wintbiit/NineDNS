@@ -34,6 +34,9 @@ Define a config:
         "all": {
           "cidrs": [               // cidr match
             "0.0.0.0/0"
+          ],
+          "ports": [
+            "1-65535"              // port match
           ]
         }
       }
