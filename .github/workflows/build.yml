@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 permissions:
   contents: write
+  packages: write
 
 env:
   GO_VERSION: 1.20.1
@@ -202,9 +203,10 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v5
+        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           platforms: linux/amd64,linux/arm64
           tags: |
             wulaguy/ninedns:latest
