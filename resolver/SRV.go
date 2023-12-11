@@ -1,27 +1,27 @@
-package server
+package resolver
 
 import (
 	"fmt"
 
 	"github.com/miekg/dns"
+	"github.com/wintbiit/ninedns/model"
 )
 
-type ResolverSRV struct{}
+type SRV struct{}
 
 func init() {
-	resolvers[dns.TypeSRV] = &ResolverSRV{}
+	resolvers[dns.TypeSRV] = &SRV{}
 }
 
-func (_ *ResolverSRV) Resolve(s *RuleSet, r *dns.Msg, name string) ([]dns.RR, error) {
-	record := s.findRecord(name, dns.TypeSRV)
+func (_ *SRV) Resolve(s model.RuleProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+	record := s.FindRecord(name, dns.TypeSRV)
 
 	if record == nil {
-		if !s.Recursion {
+		if !s.Recursion() {
 			return nil, fmt.Errorf("no record found for question: %+v", name)
 		}
 
-		s.l.Debugf("Recursion enabled, forwarding request to upstream: %s", s.Upstream)
-		resp, _, err := s.dnsClient.Exchange(r, s.Upstream)
+		resp, err := s.Exchange(r)
 		if err != nil {
 			return nil, err
 		}

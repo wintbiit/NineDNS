@@ -178,7 +178,7 @@ func (s *Server) MatchHandler(w dns.ResponseWriter) *RuleSet {
 	handlerName, err = s.cacheClient.GetRuntimeCache("handler:" + ip.String())
 	if err != nil {
 		if err == redis.Nil {
-			handlerName = s.matchHandler(ip, port, zone, network)
+			handlerName = s.matchRuleset(ip, port, zone, network)
 			if handlerName == "" {
 				return nil
 			}
@@ -202,7 +202,7 @@ func (s *Server) MatchHandler(w dns.ResponseWriter) *RuleSet {
 	return handler
 }
 
-func (s *Server) matchHandler(ip net.IP, port int, zone, network string) string {
+func (s *Server) matchRuleset(ip net.IP, port int, zone, network string) string {
 	ruleName := ""
 	for _, rule := range s.rules {
 		if rule.ShouldHandle(ip, port, zone, network) {

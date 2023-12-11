@@ -1,11 +1,12 @@
 package server
 
 import (
-	"fmt"
 	"math/rand"
 	"net"
 	"sort"
 	"strings"
+
+	"github.com/wintbiit/ninedns/resolver"
 
 	"github.com/miekg/dns"
 
@@ -21,11 +22,14 @@ type RuleSet struct {
 	cidrs []*net.IPNet
 }
 
-type Resolver interface {
-	Resolve(*RuleSet, *dns.Msg, string) ([]dns.RR, error)
+func (s *RuleSet) Recursion() bool {
+	return s.Domain.Recursion
 }
 
-var resolvers = make(map[uint16]Resolver)
+func (s *RuleSet) Exchange(r *dns.Msg) (*dns.Msg, error) {
+	m, _, err := s.dnsClient.Exchange(r, s.Upstream)
+	return m, err
+}
 
 func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 	ruleSet := &RuleSet{
@@ -70,12 +74,7 @@ func (s *RuleSet) query(r, m *dns.Msg) {
 }
 
 func (s *RuleSet) question(q *dns.Question, r, m *dns.Msg, name string) error {
-	resolver, ok := resolvers[q.Qtype]
-	if !ok {
-		return fmt.Errorf("unsupported DNS question type: %s", dns.TypeToString[q.Qtype])
-	}
-
-	records, err := resolver.Resolve(s, r, q.Name)
+	records, err := resolver.Resolve(q.Qtype, s, r, name)
 	if err != nil {
 		return err
 	}
@@ -125,7 +124,7 @@ func (s *RuleSet) ShouldHandle(ip net.IP, port int, zone, network string) bool {
 	return matchers == matched
 }
 
-func (s *RuleSet) findRecords(name string, quesType uint16) []model.Record {
+func (s *RuleSet) FindRecords(name string, quesType uint16) []model.Record {
 	name = strings.TrimSuffix(name, s.DomainName)
 	name = strings.TrimSuffix(name, ".")
 	if name == "" {
@@ -140,8 +139,8 @@ func (s *RuleSet) findRecords(name string, quesType uint16) []model.Record {
 	return records
 }
 
-func (s *RuleSet) findRecord(name string, quesType uint16) *model.Record {
-	if records := s.findRecords(name, quesType); records != nil {
+func (s *RuleSet) FindRecord(name string, quesType uint16) *model.Record {
+	if records := s.FindRecords(name, quesType); records != nil {
 		if len(records) == 1 {
 			return &(records)[0]
 		} else if len(records) > 1 {
@@ -204,4 +203,18 @@ func (s *RuleSet) RefreshRecords() {
 
 	s.l.Infof("Refreshed %d records", len(records))
 	s.l.Debug("Refreshed records: %v", records)
+}
+
+func (s *RuleSet) localCNAME(name string) string {
+	record := s.FindRecord(name, dns.TypeCNAME)
+	if record == nil {
+		return ""
+	}
+
+	cname := record.Value.String()
+	if !strings.HasSuffix(cname, ".") {
+		cname = cname + "." + s.DomainName
+	}
+
+	return cname
 }
