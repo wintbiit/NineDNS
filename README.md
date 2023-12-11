@@ -6,10 +6,18 @@ Nine DNS is a flexible DNS server that offers DNS resolution based on the questi
 
 ## Why NineDNS
 ### 1. ACL DNS Resolve
-`NineDNS` aims to differentiated dns resolve based on question source.
+`NineDNS` aims to provide a flexible way to resolve DNS records.
+
+You can match different question source by cidr, port, protocol, and so on.
+
+Clients can use different dns resolve based on their network environment.
+
+For example, you can filter clients by cidr, and resolve different dns records for them.
 
 ### 2. DNS Records from Remote
 Moreover, NineDNS supports retrieving DNS records from remote databases such as MySQL or PostgreSQL.
+
+It's easy to manage DNS records in a centralized way.
 
 ### 3. Cloud Native
 `NineDNS` can integrate as part of cloud-native components. It supports cache sharing, load balancing, and log tracing.
