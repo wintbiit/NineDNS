@@ -8,14 +8,6 @@ permissions:
 
 env:
   GO_VERSION: 1.20.1
-  CONTAINER_LABELS: |
-    org.opencontainers.image.source=https://github.com/wintbiit/ninedns
-    org.opencontainers.image.revision=${{ github.sha }}
-    org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
-    org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
-    org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
-    org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
-    org.opencontainers.image.licenses=AGPL-3.0
 
 jobs:
 
@@ -227,7 +219,14 @@ jobs:
             wulaguy/ninedns:${{steps.get-current-tag.outputs.tag }}
             ghcr.io/wintbiit/ninedns:latest
             ghcr.io/wintbiit/ninedns:${{steps.get-current-tag.outputs.tag }}
-          labels: ${{ env.CONTAINER_LABELS }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/wintbiit/ninedns
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
+            org.opencontainers.image.licenses=AGPL-3.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -243,7 +242,14 @@ jobs:
           tags: |
             wulaguy/ninedns:${{steps.get-current-tag.outputs.tag }}-mini
             ghcr.io/wintbiit/ninedns:${{steps.get-current-tag.outputs.tag }}-mini
-          labels: ${{ env.CONTAINER_LABELS }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/wintbiit/ninedns
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
+            org.opencontainers.image.licenses=AGPL-3.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -259,6 +265,13 @@ jobs:
           tags: |
             wulaguy/ninedns:${{steps.get-current-tag.outputs.tag }}-full
             ghcr.io/wintbiit/ninedns:${{steps.get-current-tag.outputs.tag }}-full
-          labels: ${{ env.CONTAINER_LABELS }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/wintbiit/ninedns
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
+            org.opencontainers.image.licenses=AGPL-3.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
