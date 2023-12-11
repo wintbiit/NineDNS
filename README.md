@@ -63,3 +63,13 @@ And that's all! Run `NineDNS` with config file now:
 $ ninedns -c config.json
 ```
 > `NineDNS` autoloads `ninedns.json` in current directory if `-c` is not specified.
+
+
+## Downloads
+Download from [releases](https://github.com/wintbiit/NineDNS/releases) page.
+
+| Name           | Description                                           |
+|----------------|-------------------------------------------------------|
+| `ninedns-mini` | NineDNS binary without most providers.                |
+| `ninedns`      | NineDNS binary with mysql provider and file providers |
+| `ninedns-full` | NineDNS binary with all providers.                    |

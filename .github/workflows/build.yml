@@ -72,19 +72,15 @@ jobs:
       - run: go version
       - name: Build
         run: |
-          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns .
-          go build -trimpath -ldflags "-s -w" -tags "lark" -o ./bin/ninedns-full .
+          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns-mini .
+          go build -trimpath -ldflags "-s -w" -tags "mysql" -o ./bin/ninedns .
+          go build -trimpath -ldflags "-s -w" -tags "mysql lark sqlite postgres" -o ./bin/ninedns-full .
         working-directory: ./
       - name: Artifact
         uses: actions/upload-artifact@v3
         with:
           name: ninedns-amd64
-          path: ./bin/ninedns
-      - name: Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ninedns-full-amd64
-          path: ./bin/ninedns-full
+          path: ./bin
 
   backend-windows:
     name: Backend-Windows
@@ -99,19 +95,15 @@ jobs:
       - run: go version
       - name: Build
         run: |
-          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns.exe .
-          go build -trimpath -ldflags "-s -w" -tags "lark" -o ./bin/ninedns-full.exe .
+          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns-mini.exe .
+          go build -trimpath -ldflags "-s -w" -tags "mysql" -o ./bin/ninedns.exe .
+          go build -trimpath -ldflags "-s -w" -tags "mysql lark sqlite postgres" -o ./bin/ninedns-full.exe .
         working-directory: ./
       - name: Artifact
         uses: actions/upload-artifact@v3
         with:
           name: ninedns-windows
-          path: ./bin/ninedns.exe
-      - name: Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ninedns-full-windows
-          path: ./bin/ninedns-full.exe
+          path: ./bin
 
   release:
     name: Release
@@ -137,22 +129,11 @@ jobs:
         with:
           name: ninedns-amd64
           path: ./dist
-      - name: Download Artifact Linux
-        uses: actions/download-artifact@v3
-        with:
-          name: ninedns-full-amd64
-          path: ./dist
 
       - name: Download Artifact Windows
         uses: actions/download-artifact@v3
         with:
           name: ninedns-windows
-          path: ./dist
-
-      - name: Download Artifact Windows
-        uses: actions/download-artifact@v3
-        with:
-          name: ninedns-full-windows
           path: ./dist
 
       - name: ls

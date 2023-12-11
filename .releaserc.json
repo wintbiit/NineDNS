@@ -8,10 +8,12 @@
     "@semantic-release/release-notes-generator",
     ["@semantic-release/github", {
       "assets": [
-        {"path": "dist/ninedns", "name": "ninedns-linux-amd64-${nextRelease.version}"},
-        {"path": "dist/ninedns.exe", "name": "ninedns-windows-amd64-${nextRelease.version}.exe"},
-        {"path": "dist/ninedns-full", "name": "ninedns-full-linux-amd64-${nextRelease.version}"},
-        {"path": "dist/ninedns-full.exe", "name": "ninedns-full-windows-amd64-${nextRelease.version}.exe"}
+        {"path": "dist/bin/ninedns-mini", "name": "ninedns-mini-linux-amd64-${nextRelease.version}"},
+        {"path": "dist/bin/ninedns", "name": "ninedns-linux-amd64-${nextRelease.version}"},
+        {"path": "dist/bin/ninedns-full", "name": "ninedns-full-linux-amd64-${nextRelease.version}"},
+        {"path": "dist/bin/ninedns-mini.exe", "name": "ninedns-mini-windows-amd64-${nextRelease.version}.exe"},
+        {"path": "dist/bin/ninedns.exe", "name": "ninedns-windows-amd64-${nextRelease.version}.exe"},
+        {"path": "dist/bin/ninedns-full.exe", "name": "ninedns-full-windows-amd64-${nextRelease.version}.exe"}
       ]
     }]
   ]

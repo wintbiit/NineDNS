@@ -30,6 +30,11 @@ CREATE TABLE if not exists `rule_set_name` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
 
+Not include in default build, you need to add `mysql` tag to build it.
+```bash
+go build -tags "mysql"
+```
+
 ### SQLite Provider
 config:
 ```json
@@ -43,6 +48,11 @@ Like `Mysql Provider`, `SQLite Provider` connects to a sqlite database and reads
 SQL is re-read according to ttl
 
 > Using `github.com/glebarez/sqlite` as sqlite driver, please refer to this repo for more usage.
+
+Desabled by default, you need to add `sqlite` tag to build it.
+```bash
+go build -tags "sqlite"
+```
 
 ### File Provider
 config:
@@ -70,6 +80,8 @@ config:
 ruleset name is used as file name.
 files in the directory will be re-read according to ttl
 
+
+
 ### Lark Provider
 config:
 ```json
@@ -79,11 +91,29 @@ config:
   }
 }
 ```
-`Lark Provider` reads records from lark bitable. Also ruleset name is used as table name.
+`Lark Provider` reads records from lark bitable. Also, ruleset name is used as table name.
 
 #### Minimize binary size
  Please note, lark provider introduced [oapi-lark-go](https://github.com/larksuite/oapi-sdk-go) and [sonic](https://github.com/bytedance/sonic),
- which largely increases binary size, so it's disabled by default. You can build it with `lark` tag to enable it.
+ which largely increases binary size, it's disabled by default. You need to add `lark` tag to build it.
  ```bash
 go build -tags "lark"
 ```
+
+### Postgres Provider
+config:
+```json
+{
+  "provider": {
+    "postgres": "postgres://user:password@host:port/dbname?sslmode=disable"
+  }
+}
+```
+
+`Postgres Provider` connects to a postgres database and reads records from it. Table name is rule set name.
+
+Desabled by default, you need to add `postgres` tag to build it.
+```bash
+go build -tags "postgres"
+```
+
