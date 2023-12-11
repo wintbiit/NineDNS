@@ -1,0 +1,277 @@
+name: Build
+
+on: [push, pull_request]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  GO_VERSION: 1.20.1
+
+jobs:
+
+  go-tests:
+    name: Running Go tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: dns
+          MYSQL_ROOT_PASSWORD: 123456
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      redis:
+        image: redis:6.2.4
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ./go.mod
+      - name: Tests
+        run: |
+          go test -v $(go list ./...) -tags skipCi
+        working-directory: ./
+
+  linter:
+    name: Go-Linter
+    runs-on: ubuntu-latest
+    needs: [ go-tests ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      # gen a dummy config file
+      - run: touch dummy.yml
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --disable-all -c dummy.yml -E=gofumpt --max-same-issues=0 --timeout 5m --modules-download-mode=mod
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    needs: [ linter ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ./go.mod
+      - run: go version
+      - name: Build
+        run: |
+          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns-mini .
+          go build -trimpath -ldflags "-s -w" -tags "mysql" -o ./bin/ninedns .
+          go build -trimpath -ldflags "-s -w" -tags "mysql lark sqlite postgres" -o ./bin/ninedns-full .
+        working-directory: ./
+      - name: Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ninedns-amd64
+          path: ./bin
+
+  backend-windows:
+    name: Backend-Windows
+    runs-on: windows-2019
+    needs: [ linter ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ./go.mod
+      - run: go version
+      - name: Build
+        run: |
+          go build -trimpath -ldflags "-s -w" -o ./bin/ninedns-mini.exe .
+          go build -trimpath -ldflags "-s -w" -tags "mysql" -o ./bin/ninedns.exe .
+          go build -trimpath -ldflags "-s -w" -tags "mysql lark sqlite postgres" -o ./bin/ninedns-full.exe .
+        working-directory: ./
+      - name: Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ninedns-windows
+          path: ./bin
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [ backend, backend-windows ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Previous version
+        id: get-previous-tag
+        uses: actions-ecosystem/action-get-latest-tag@v1.6.0
+
+      - name: mkdir
+        run: |
+          mkdir dist
+
+      - name: Download Artifact Linux
+        uses: actions/download-artifact@v3
+        with:
+          name: ninedns-amd64
+          path: ./dist
+
+      - name: Download Artifact Windows
+        uses: actions/download-artifact@v3
+        with:
+          name: ninedns-windows
+          path: ./dist
+
+      - name: ls
+        run: |
+          ls -l ./dist
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: yarn global add semantic-release && semantic-release
+
+      - name: Fetch Current version
+        id: get-current-tag
+        uses: actions-ecosystem/action-get-latest-tag@v1.6.0
+
+      - name: Decide Should_Push Or Not
+        id: should_push
+        run: |
+          old_version=${{steps.get-previous-tag.outputs.tag}}
+          new_version=${{steps.get-current-tag.outputs.tag }}
+
+          old_array=(${old_version//\./ })
+          new_array=(${new_version//\./ })
+
+          if [ ${old_array[0]} != ${new_array[0]} ]
+          then 
+              echo ::set-output name=push::'true'
+          elif [ ${old_array[1]} != ${new_array[1]} ]
+          then 
+              echo ::set-output name=push::'true'
+
+          else
+              echo ::set-output name=push::'false'
+
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Go Build Cache for Docker
+        uses: actions/cache@v3
+        with:
+          path: go-build-cache
+          key: ${{ runner.os }}-go-build-cache-${{ hashFiles('**/go.sum') }}
+
+      - name: inject go-build-cache into docker
+        # v1 was composed of two actions: "inject" and "extract".
+        # v2 is unified to a single action.
+        uses: reproducible-containers/buildkit-cache-dance@v2.1.2
+        with:
+          cache-source: go-build-cache
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Push
+        uses: docker/build-push-action@v5
+        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAGS="mysql"
+          tags: |
+            wulaguy/ninedns:latest
+            wulaguy/ninedns:${{steps.get-current-tag.outputs.tag }}
+            ghcr.io/wintbiit/ninedns:latest
+            ghcr.io/wintbiit/ninedns:${{steps.get-current-tag.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/wintbiit/ninedns
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
+            org.opencontainers.image.licenses=AGPL-3.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Docker Push Mini
+        uses: docker/build-push-action@v5
+        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAGS=""
+          tags: |
+            wulaguy/ninedns:${{steps.get-current-tag.outputs.tag }}-mini
+            ghcr.io/wintbiit/ninedns:${{steps.get-current-tag.outputs.tag }}-mini
+          labels: |
+            org.opencontainers.image.source=https://github.com/wintbiit/ninedns
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
+            org.opencontainers.image.licenses=AGPL-3.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Docker Push Full
+        uses: docker/build-push-action@v5
+        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAGS="mysql lark sqlite postgres"
+          tags: |
+            wulaguy/ninedns:${{steps.get-current-tag.outputs.tag }}-full
+            ghcr.io/wintbiit/ninedns:${{steps.get-current-tag.outputs.tag }}-full
+          labels: |
+            org.opencontainers.image.source=https://github.com/wintbiit/ninedns
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.title=ninedns ${{steps.get-current-tag.outputs.tag }}
+            org.opencontainers.image.description="flexible dns with source cidr dispatch and database record storage support"
+            org.opencontainers.image.licenses=AGPL-3.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
