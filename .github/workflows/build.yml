@@ -73,7 +73,7 @@ jobs:
       - name: Build
         run: |
           go build -trimpath -ldflags "-s -w" -o ./bin/ninedns .
-          go build -trimpath -ldflags "-s -w" -tags "nolark" -o ./bin/ninedns-nolark .
+          go build -trimpath -ldflags "-s -w" -tags "lark" -o ./bin/ninedns-full .
         working-directory: ./
       - name: Artifact
         uses: actions/upload-artifact@v3
@@ -83,8 +83,8 @@ jobs:
       - name: Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ninedns-nolark-amd64
-          path: ./bin/ninedns-nolark
+          name: ninedns-full-amd64
+          path: ./bin/ninedns-full
 
   backend-windows:
     name: Backend-Windows
@@ -100,7 +100,7 @@ jobs:
       - name: Build
         run: |
           go build -trimpath -ldflags "-s -w" -o ./bin/ninedns.exe .
-          go build -trimpath -ldflags "-s -w" -tags "nolark" -o ./bin/ninedns-nolark.exe .
+          go build -trimpath -ldflags "-s -w" -tags "lark" -o ./bin/ninedns-full.exe .
         working-directory: ./
       - name: Artifact
         uses: actions/upload-artifact@v3
@@ -110,8 +110,8 @@ jobs:
       - name: Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ninedns-nolark-windows
-          path: ./bin/ninedns-nolark.exe
+          name: ninedns-full-windows
+          path: ./bin/ninedns-full.exe
 
   release:
     name: Release
@@ -132,27 +132,27 @@ jobs:
         run: |
           mkdir dist
 
-      - name: Donload Artifact Linux
+      - name: Download Artifact Linux
         uses: actions/download-artifact@v3
         with:
           name: ninedns-amd64
           path: ./dist
-      - name: Donload Artifact Linux
+      - name: Download Artifact Linux
         uses: actions/download-artifact@v3
         with:
-          name: ninedns-nolark-amd64
+          name: ninedns-full-amd64
           path: ./dist
 
-      - name: Donload Artifact Windows
+      - name: Download Artifact Windows
         uses: actions/download-artifact@v3
         with:
           name: ninedns-windows
           path: ./dist
 
-      - name: Donload Artifact Windows
+      - name: Download Artifact Windows
         uses: actions/download-artifact@v3
         with:
-          name: ninedns-nolark-windows
+          name: ninedns-full-windows
           path: ./dist
 
       - name: ls

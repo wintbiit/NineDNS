@@ -83,7 +83,7 @@ config:
 
 #### Minimize binary size
  Please note, lark provider introduced [oapi-lark-go](https://github.com/larksuite/oapi-sdk-go) and [sonic](https://github.com/bytedance/sonic),
- which largely increases binary size. If you don't need lark provider, please disable it while build:
+ which largely increases binary size, so it's disabled by default. You can build it with `lark` tag to enable it.
  ```bash
-go build -tags "nolark"
+go build -tags "lark"
 ```

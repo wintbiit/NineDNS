@@ -1,4 +1,4 @@
-//go:build !nolark
+//go:build lark
 
 package provider
 
