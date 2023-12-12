@@ -202,7 +202,7 @@ jobs:
 
       - name: Docker Push
         uses: docker/build-push-action@v5
-        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
+        if: github.event_name == 'push'new_version
         with:
           context: .
           push: true
@@ -267,7 +267,7 @@ jobs:
 
       - name: Docker Push Mini
         uses: docker/build-push-action@v5
-        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
+        if: github.event_name == 'push'new_version
         with:
           context: .
           push: true
@@ -329,7 +329,7 @@ jobs:
 
       - name: Docker Push Full
         uses: docker/build-push-action@v5
-        if: github.event_name == 'push' && steps.should_push.outputs.push=='true'
+        if: github.event_name == 'push'new_version
         with:
           context: .
           push: true
