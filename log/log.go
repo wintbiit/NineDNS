@@ -3,6 +3,8 @@ package log
 import (
 	"os"
 
+	"gopkg.in/natefinch/lumberjack.v2"
+
 	"github.com/wintbiit/ninedns/utils"
 
 	"go.uber.org/zap"
@@ -28,6 +30,14 @@ func NewLogger(module string) *Logger {
 }
 
 func NewLoggerWithLevel(module string, level zapcore.Level) *Logger {
+	lumberjackLogger := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   "logs/" + module + ".log",
+		MaxSize:    100,
+		MaxBackups: 10,
+		MaxAge:     30,
+		Compress:   true,
+	})
+
 	encoder := zap.NewProductionEncoderConfig()
 	encoder.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoder.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -36,7 +46,9 @@ func NewLoggerWithLevel(module string, level zapcore.Level) *Logger {
 		enc.AppendString(caller.String())
 	}
 
-	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encoder), zapcore.Lock(os.Stdout), level)
+	core := zapcore.NewTee(
+		zapcore.NewCore(zapcore.NewConsoleEncoder(encoder), zapcore.Lock(os.Stdout), level),
+		zapcore.NewCore(zapcore.NewConsoleEncoder(encoder), lumberjackLogger, level))
 
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
 	logger.Named(module)
