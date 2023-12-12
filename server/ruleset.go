@@ -55,7 +55,7 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 	return ruleSet
 }
 
-func (s *RuleSet) query(r, m *dns.Msg) {
+func (s *RuleSet) resolve(r, m *dns.Msg) {
 	for _, q := range r.Question {
 		// 1. Try CNAME
 		name := q.Name
@@ -74,9 +74,20 @@ func (s *RuleSet) query(r, m *dns.Msg) {
 }
 
 func (s *RuleSet) question(q *dns.Question, r, m *dns.Msg, name string) error {
-	records, err := resolver.Resolve(q.Qtype, s, r, name)
+	records, err := resolver.Resolve(q.Qtype, s, name)
 	if err != nil {
 		return err
+	}
+
+	if len(records) == 0 && s.Recursion() {
+		s.l.Debugf("Question %s not found, try upstream", q.String())
+		resp, err := s.Exchange(r)
+		if err != nil {
+			return err
+		}
+
+		m.Answer = resp.Answer
+		return nil
 	}
 
 	for _, record := range records {
@@ -132,7 +143,7 @@ func (s *RuleSet) FindRecords(name string, quesType uint16) []model.Record {
 	}
 	records, err := s.cacheClient.FindRecords(name, model.ReadRecordType(quesType).String(), s.Name)
 	if err != nil {
-		s.l.Errorf("Failed to query records: %s", err)
+		s.l.Errorf("Failed to resolve records: %s", err)
 		return nil
 	}
 

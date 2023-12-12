@@ -1,8 +1,6 @@
 package resolver
 
 import (
-	"fmt"
-
 	"github.com/miekg/dns"
 	"github.com/wintbiit/ninedns/model"
 )
@@ -13,19 +11,10 @@ func init() {
 	resolvers[dns.TypeNS] = &NS{}
 }
 
-func (_ *NS) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+func (_ *NS) Resolve(s model.RecordProvider, name string) ([]dns.RR, error) {
 	record := s.FindRecord(name, dns.TypeNS)
 	if record == nil {
-		if !s.Recursion() {
-			return nil, fmt.Errorf("no record found for question: %+v", name)
-		}
-
-		resp, err := s.Exchange(r)
-		if err != nil {
-			return nil, err
-		}
-
-		return resp.Answer, nil
+		return nil, nil
 	}
 
 	rr := &dns.NS{

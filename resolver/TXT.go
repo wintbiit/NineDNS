@@ -11,20 +11,11 @@ func init() {
 	resolvers[dns.TypeTXT] = &TXT{}
 }
 
-func (_ *TXT) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR, error) {
+func (_ *TXT) Resolve(s model.RecordProvider, name string) ([]dns.RR, error) {
 	records := s.FindRecords(name, dns.TypeTXT)
 
 	if records == nil {
-		if !s.Recursion() {
-			return nil, nil
-		}
-
-		resp, err := s.Exchange(r)
-		if err != nil {
-			return nil, err
-		}
-
-		return resp.Answer, nil
+		return nil, nil
 	}
 
 	rrs := make([]dns.RR, len(records))

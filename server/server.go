@@ -126,7 +126,7 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 
 	s.l.Debugf("Found rule for %s: %+v", remoteAddr, handler)
 
-	handler.query(r, m)
+	handler.resolve(r, m)
 
 	if err := w.WriteMsg(m); err != nil {
 		s.l.Errorf("Failed to write response: %s", err)
