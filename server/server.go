@@ -115,10 +115,8 @@ func (s *Server) handle(w dns.ResponseWriter, r *dns.Msg) {
 	m.SetReply(r)
 	m.Authoritative = s.Authoritative
 	m.RecursionAvailable = s.Recursion
-	if r.IsTsig() != nil {
-		if w.TsigStatus() != nil {
-			m.SetTsig(s.Tsig.KeyName, dns.HmacSHA256, 300, time.Now().Unix())
-		}
+	if r.IsTsig() != nil && w.TsigStatus() != nil && s.Tsig != nil {
+		m.SetTsig(s.Tsig.Key, dns.HmacSHA256, 300, time.Now().Unix())
 	}
 
 	handler := s.MatchHandler(w)

@@ -23,12 +23,11 @@ type Domain struct {
 	Upstream      string            `json:"upstream,default=127.0.0.1:53"`
 	Providers     map[string]string `json:"providers"`
 	TTL           uint32            `json:"ttl,default=60"`
-	Tsig          TSIG              `json:"tsig"`
+	Tsig          *TSIG             `json:"tsig"`
 }
 
 type TSIG struct {
-	KeyName string `json:"key_name"`
-	Key     string `json:"key"`
+	Key string `json:"key"`
 }
 
 type Rule struct {
