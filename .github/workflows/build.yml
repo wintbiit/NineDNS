@@ -164,7 +164,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: [ release ]
-    if: github.event_name == 'push' && needs.release.outputs.new_version != ''
+    if: github.event_name == 'push'
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -229,7 +229,7 @@ jobs:
   docker-mini:
     runs-on: ubuntu-latest
     needs: [ release ]
-    if: github.event_name == 'push' && needs.release.outputs.new_version != ''
+    if: github.event_name == 'push'
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -291,7 +291,7 @@ jobs:
   docker-full:
     runs-on: ubuntu-latest
     needs: [ release ]
-    if: github.event_name == 'push' && needs.release.outputs.new_version != ''
+    if: github.event_name == 'push'
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
