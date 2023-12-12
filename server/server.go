@@ -93,11 +93,6 @@ func (s *Server) checkConfig() {
 		s.l.Warn("Server TTL is 0, automatically set it to 60.")
 	}
 
-	if s.Domain.Upstream == "" {
-		s.Domain.Upstream = "223.5.5.5:53"
-		s.l.Warn("Server upstream is empty, automatically set it to %s.", s.Domain.Upstream)
-	}
-
 	if s.Domain.Rules == nil {
 		s.l.Warn("Server rules is empty, automatically added general rule.")
 		s.Domain.Rules = map[string]model.Rule{"": {}}

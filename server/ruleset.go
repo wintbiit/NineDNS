@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/wintbiit/ninedns/log"
 
@@ -28,8 +30,43 @@ func (s *RuleSet) Recursion() bool {
 }
 
 func (s *RuleSet) Exchange(r *dns.Msg) (*dns.Msg, error) {
-	m, _, err := s.dnsClient.Exchange(r, s.Upstream)
-	return m, err
+	upstream, err := s.cacheClient.GetRuntimeCache("upstream:" + s.DomainName + s.Name)
+	if err != nil {
+		upstream, err = s.findUpstream(r)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := s.cacheClient.AddRuntimeCache("upstream:"+s.DomainName+s.Name, upstream, time.Duration(s.TTL)*time.Second); err != nil {
+			s.l.Warnf("Failed to add runtime cache: %s", err)
+		}
+	}
+
+	m, _, err := s.dnsClient.Exchange(r, upstream)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func (s *RuleSet) findUpstream(r *dns.Msg) (string, error) {
+	for _, upstream := range s.Upstreams {
+		m, _, err := s.dnsClient.Exchange(r, upstream)
+		if err != nil {
+			s.l.Debugf("Failed to exchange with upstream %s: %s", upstream, err)
+			continue
+		}
+
+		if m == nil || m.Rcode != dns.RcodeSuccess {
+			s.l.Debugf("Failed to exchange with upstream %s: %s", upstream, err)
+			continue
+		}
+
+		return upstream, nil
+	}
+
+	return "", fmt.Errorf("failed to find upstream")
 }
 
 func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
