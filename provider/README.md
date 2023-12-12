@@ -49,7 +49,7 @@ SQL is re-read according to ttl
 
 > Using `github.com/glebarez/sqlite` as sqlite driver, please refer to this repo for more usage.
 
-Desabled by default, you need to add `sqlite` tag to build it.
+Disabled by default, you need to add `sqlite` tag to build it.
 ```bash
 go build -tags "sqlite"
 ```
@@ -112,7 +112,7 @@ config:
 
 `Postgres Provider` connects to a postgres database and reads records from it. Table name is rule set name.
 
-Desabled by default, you need to add `postgres` tag to build it.
+Disabled by default, you need to add `postgres` tag to build it.
 ```bash
 go build -tags "postgres"
 ```
