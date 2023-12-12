@@ -27,15 +27,13 @@ func (_ *TXT) Resolve(s model.RecordProvider, r *dns.Msg, name string) ([]dns.RR
 		return resp.Answer, nil
 	}
 
-	txt := make([]string, len(records))
-	for i, record := range records {
-		txt[i] = record.Value.String()
+	rrs := make([]dns.RR, len(records))
+	for i := range records {
+		rrs[i] = &dns.TXT{
+			Hdr: s.Header(&records[i]),
+			Txt: []string{records[i].Value.String()},
+		}
 	}
 
-	rr := &dns.TXT{
-		Hdr: s.Header(&records[0]),
-		Txt: txt,
-	}
-
-	return []dns.RR{rr}, nil
+	return rrs, nil
 }
