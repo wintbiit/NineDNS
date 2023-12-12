@@ -212,7 +212,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
-            TAGS="mysql"
+            TAGS='mysql'
           tags: |
             wulaguy/ninedns:latest
             wulaguy/ninedns:${{ needs.release.outputs.new_version }}
@@ -279,7 +279,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
-            TAGS=""
+            TAGS=''
           tags: |
             wulaguy/ninedns:${{ needs.release.outputs.new_version }}-mini
             ghcr.io/wintbiit/ninedns:${{ needs.release.outputs.new_version }}-mini
@@ -343,7 +343,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
-            TAGS="mysql lark sqlite postgres"
+            TAGS='mysql lark sqlite postgres'
           tags: |
             wulaguy/ninedns:${{ needs.release.outputs.new_version }}-full
             ghcr.io/wintbiit/ninedns:${{ needs.release.outputs.new_version }}-full
