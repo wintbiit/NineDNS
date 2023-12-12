@@ -68,7 +68,6 @@ func (s *RuleSet) query(r, m *dns.Msg) {
 		err := s.question(&q, r, m, name)
 		if err != nil {
 			s.l.Warnf("Failed to handle question %s: %s", q.String(), err)
-			m.SetRcode(r, dns.RcodeNameError)
 			continue
 		}
 	}
