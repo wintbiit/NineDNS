@@ -9,12 +9,16 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func init() {
-	logger := NewLogger("main")
-	zap.ReplaceGlobals(logger)
+type Logger struct {
+	*zap.SugaredLogger
 }
 
-func NewLogger(module string) *zap.Logger {
+func init() {
+	logger := NewLogger("main")
+	zap.ReplaceGlobals(logger.SugaredLogger.Desugar())
+}
+
+func NewLogger(module string) *Logger {
 	level := zapcore.InfoLevel
 	if utils.C.Debug {
 		level = zapcore.DebugLevel
@@ -23,7 +27,7 @@ func NewLogger(module string) *zap.Logger {
 	return NewLoggerWithLevel(module, level)
 }
 
-func NewLoggerWithLevel(module string, level zapcore.Level) *zap.Logger {
+func NewLoggerWithLevel(module string, level zapcore.Level) *Logger {
 	encoder := zap.NewProductionEncoderConfig()
 	encoder.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoder.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -38,5 +42,7 @@ func NewLoggerWithLevel(module string, level zapcore.Level) *zap.Logger {
 	logger.Named(module)
 	defer logger.Sync()
 
-	return logger
+	return &Logger{
+		SugaredLogger: logger.Sugar(),
+	}
 }

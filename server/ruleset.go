@@ -6,19 +6,20 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/wintbiit/ninedns/log"
+
 	"github.com/wintbiit/ninedns/resolver"
 
 	"github.com/miekg/dns"
 
 	"github.com/wintbiit/ninedns/model"
-	"go.uber.org/zap"
 )
 
 type RuleSet struct {
 	model.Rule
 	*Server
 	Name  string
-	l     *zap.SugaredLogger
+	l     *log.Logger
 	cidrs []*net.IPNet
 }
 
@@ -36,7 +37,7 @@ func (s *Server) newRuleSet(name string, rule model.Rule) *RuleSet {
 		Rule:   rule,
 		Server: s,
 		Name:   name,
-		l:      s.l.Named(s.DomainName + "/" + name),
+		l:      log.NewLogger(s.DomainName + "/" + name),
 		cidrs:  make([]*net.IPNet, len(rule.CIDRs)),
 	}
 

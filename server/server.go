@@ -8,19 +8,16 @@ import (
 
 	"github.com/wintbiit/ninedns/provider"
 
-	"github.com/redis/go-redis/v9"
-
 	"github.com/miekg/dns"
 	"github.com/wintbiit/ninedns/cache"
 	"github.com/wintbiit/ninedns/log"
 	"github.com/wintbiit/ninedns/model"
-	"go.uber.org/zap"
 )
 
 type Server struct {
 	model.Domain
 	DomainName  string
-	l           *zap.SugaredLogger
+	l           *log.Logger
 	dnsClient   *dns.Client
 	cacheClient cache.API
 	providers   map[string]provider.Provider
@@ -31,7 +28,7 @@ func NewServer(config *model.Domain, domain string) (*Server, error) {
 	server := &Server{
 		Domain:     *config,
 		DomainName: domain,
-		l:          log.NewLogger(domain).Sugar(),
+		l:          log.NewLogger(domain),
 		rules:      make(map[string]*RuleSet),
 		dnsClient:  new(dns.Client),
 		providers:  make(map[string]provider.Provider),
@@ -177,13 +174,9 @@ func (s *Server) MatchHandler(w dns.ResponseWriter) *RuleSet {
 
 	handlerName, err = s.cacheClient.GetRuntimeCache(fmt.Sprintf("handler:%s:%s", ip.String(), s.DomainName))
 	if err != nil {
-		if err == redis.Nil {
-			handlerName = s.matchRuleset(ip, port, zone, network)
-			if err := s.cacheClient.AddRuntimeCache("handler:"+ip.String(), handlerName, time.Duration(s.TTL)*time.Second); err != nil {
-				s.l.Errorf("Failed to add runtime cache: %s", err)
-			}
-		} else {
-			s.l.Errorf("Failed to get runtime cache: %s", err)
+		handlerName = s.matchRuleset(ip, port, zone, network)
+		if err := s.cacheClient.AddRuntimeCache("handler:"+ip.String(), handlerName, time.Duration(s.TTL)*time.Second); err != nil {
+			s.l.Errorf("Failed to add runtime cache: %s", err)
 		}
 	}
 

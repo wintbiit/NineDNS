@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/wintbiit/ninedns/model"
-	"go.uber.org/zap"
 )
 
 var C *model.Config
@@ -16,15 +15,14 @@ func init() {
 
 	f, err := os.Open(*config)
 	if err != nil {
-		zap.S().Fatalf("Failed to open config file: %s", err)
+		panic(err)
 	}
 	defer f.Close()
 
 	var conf model.Config
 	if err = UnmarshalFromReader(f, &conf); err != nil {
-		zap.S().Fatalf("Failed to parse config file: %s", err)
+		panic(err)
 	}
 
 	C = &conf
-	zap.S().Debugf("Loaded config: %+v", C)
 }
