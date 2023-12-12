@@ -168,6 +168,8 @@ jobs:
     needs: [ release ]
     if: github.event_name == 'push' && needs.release.outputs.new_version != ''
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -208,7 +210,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
             TAGS="mysql"
           tags: |
@@ -233,6 +235,8 @@ jobs:
     needs: [ release ]
     if: github.event_name == 'push' && needs.release.outputs.new_version != ''
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -273,7 +277,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
             TAGS=""
           tags: |
@@ -295,6 +299,8 @@ jobs:
     needs: [ release ]
     if: github.event_name == 'push' && needs.release.outputs.new_version != ''
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -335,7 +341,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
             TAGS="mysql lark sqlite postgres"
           tags: |
