@@ -73,3 +73,6 @@ Download from [releases](https://github.com/wintbiit/NineDNS/releases) page.
 | `ninedns-mini` | NineDNS binary without most providers.                |
 | `ninedns`      | NineDNS binary with mysql provider and file providers |
 | `ninedns-full` | NineDNS binary with all providers.                    |
+
+## Special Thanks
+Special thanks to miekg's graceful and well-designed go dns library [miekg/dns](https://github.com/miekg/dns)
