@@ -22,6 +22,26 @@ It's easy to manage DNS records in a centralized way.
 ### 3. Cloud Native
 `NineDNS` can integrate as part of cloud-native components. It supports cache sharing, load balancing, and log tracing.
 
+## Main Features
+### ACL DNS Resolve
+The reason why we create `NineDNS` is to provide a flexible way to resolve DNS records according to the question source.
+
+For example, you can match different question source by cidr, port, protocol, and so on.
+
+Clients can use different dns resolve based on their network environment.
+
+#### In production uses, for example:
+You have your server deployed intranet and exposed server port via a jump server or tunnel.
+
+And you want to resolve server domain to intranet ip when clients are in intranet, and resolve to public ip when clients are outside.
+
+This is a typical use case of `NineDNS`. You simply `NS` your domain to `NineDNS` server, and configure `NineDNS` to resolve domain based on client's network environment, cidr for example.
+![whiteboard_exported_image (1).png](images%2Fwhiteboard_exported_image%20%281%29.png)
+### DNS Records from Remote
+To be a full-featured DNS server, `NineDNS` supports retrieving DNS records from remote databases such as MySQL, files, lark, and so on.
+
+Just like any Cloud DNS Providers, you can manage DNS records easily in a centralized way.
+
 ## Usage
 Define a config:
 ```json
@@ -56,13 +76,16 @@ Define a config:
   }
 }
 ```
+> When a dns question comes in, `NineDNS` will find a rule defined that both matches the domain name and the rules.
+> Then look for records in the record source defined in the rule.
+
 Read [Record Provider](provider/README.md) for more details about `providers`.
 
 And that's all! Run `NineDNS` with config file now:
 ```shell
 $ ninedns -c config.json
 ```
-> `NineDNS` autoloads `ninedns.json` in current directory if `-c` is not specified.
+> `NineDNS` auto-loads `ninedns.json` in current directory if `-c` is not specified.
 
 
 ## Downloads
